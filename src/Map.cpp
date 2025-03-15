@@ -1,5 +1,7 @@
 
 #include "Map.h"
+#include <ctime>
+#include <vector>
 
 void In_Memory_Storage :: set(std::string key, std::string value, long long expiration_time ) {
         storage[key] = make_pair(value,expiration_time) ;
@@ -34,4 +36,12 @@ void In_Memory_Storage :: clean(long long current_time ){
    }
    //std :: cout << "Size after " << storage.size() << std :: endl; 
    tmp.clear();
+}
+
+std::vector<std::string> In_Memory_Storage :: getAllKey(){
+    std::vector<std::string> keys ;
+    for(auto it : storage){
+        if(it.first != "dir" && it.first != "dbfilename") keys.push_back(it.first);
+    }
+    return keys;
 }

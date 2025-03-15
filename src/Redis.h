@@ -15,6 +15,8 @@ class Redis {
 
      Redis(std ::string current_response) 
     : response(current_response){} 
+
+    ~Redis(){};
     
     virtual std :: vector<std :: string> get_command(std :: string response);
 

@@ -3,6 +3,7 @@
 
 #include<iostream>
 #include<map>
+#include<vector>
 
 class In_Memory_Storage {
     private :
@@ -11,13 +12,14 @@ class In_Memory_Storage {
 
     public : 
 
-    ~In_Memory_Storage();
 
     virtual void set(std :: string key , std :: string value , long long expiration_time );
 
     virtual std::string get (std :: string key, long long current_time) ;
 
     virtual void clean (long long current_time );
+
+    virtual std::vector<std::string> getAllKey();
 
 };
 
