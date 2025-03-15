@@ -42,8 +42,12 @@ void handle_connect(
     std::vector<std::pair<std::string, std::string>> additional_pair) {
   std ::unique_ptr<In_Memory_Storage> key_value_storage{
       std::make_unique<In_Memory_Storage>()};
+
   long current_time = get_current_time_ms();
-  std ::cout << additional_pair.size() << std::endl;
+  for (auto it : additional_pair) {
+        key_value_storage->set(it.first, it.second, current_time + 999999999999);
+      }
+  //std ::cout << additional_pair.size() << std::endl;
   for (int i = 1; i < argc; i += 2) {
     if (i + 1 < argc) {
       std::string key = argv[i];
@@ -90,7 +94,7 @@ void handle_connect(
       long current_time_in_ms = get_current_time_ms();
       // std :: cout <<  "Time is " << current_time_in_ms << std :: endl;
       response = key_value_storage->get(parser_list[1], current_time_in_ms);
-      std ::cout << response << std ::endl;
+      //std ::cout << response << std ::endl;
       if (response == "") {
         response = "$-1\r\n";
       } else {
@@ -111,9 +115,6 @@ void handle_connect(
         }
       }
     } else if (parser_list[0] == "KEYS") {
-      for (auto it : additional_pair) {
-        key_value_storage->set(it.first, it.first, current_time + 999999999999);
-      }
 
       std::vector<std::string> keys = key_value_storage->getAllKey();
       int sz = keys.size();
@@ -153,9 +154,9 @@ int main(int argc, char **argv) {
   std::cout << std::unitbuf;
   std::cerr << std::unitbuf;
 
-  for (int i = 0; i < argc; i++) {
-    std ::cout << argv[i] << std ::endl;
-  }
+  // for (int i = 0; i < argc; i++) {
+  //   std ::cout << argv[i] << std ::endl;
+  // }
 
   int server_fd = socket(AF_INET, SOCK_STREAM, 0);
   if (server_fd < 0) {
@@ -210,6 +211,7 @@ int main(int argc, char **argv) {
     while (getline(filestream, s)) {
       all += s;
     }
+      std :: cout << all << std :: endl;
     int id = 46;
     // for(int i = 0 ;i < all.size() ;i ++){
     //   std :: cout << i <<  " " << (int)(all[i]) <<  " " << all[i] <<
@@ -229,10 +231,10 @@ int main(int argc, char **argv) {
       id++;
       value_sz--;
     }
-    std ::cout << bin_key << std ::endl;
-    std ::cout << bin_value << std ::endl;
+    std ::cout <<  " key is " << bin_key << std ::endl;
+    std ::cout <<  " value is " << bin_value << std ::endl;
   }
-  std::vector<std::pair<std::string, std::string>> v;
+  std::vector<std::pair<std::string, std::string> > v;
   v.push_back({bin_key, bin_value});
 
   while (true) {
