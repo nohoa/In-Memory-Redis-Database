@@ -18,6 +18,7 @@
 #include <type_traits>
 #include <unistd.h>
 #include <vector>
+#include "RDB Reader/RDBParser.hpp"
 
 std::mutex mutex_guard;
 std ::string to_lower(std ::string s) {
@@ -39,13 +40,13 @@ long get_current_time_ms() {
 }
 void handle_connect(
     int client_fd, int argc, char **argv,
-    std::vector<std::pair<std::string, std::string>> additional_pair) {
+    std::vector<std::vector<std::string> > additional_pair) {
   std ::unique_ptr<In_Memory_Storage> key_value_storage{
       std::make_unique<In_Memory_Storage>()};
 
   long current_time = get_current_time_ms();
   for (auto it : additional_pair) {
-        key_value_storage->set(it.first, it.second, current_time + 999999999999);
+        key_value_storage->set(it[0], it[1], current_time + 999999999999);
       }
   //std ::cout << additional_pair.size() << std::endl;
   for (int i = 1; i < argc; i += 2) {
@@ -200,42 +201,15 @@ int main(int argc, char **argv) {
   //
   std ::string bin_key;
   std ::string bin_value;
+  std::vector<std::vector<std::string> > v;
   if (argc >= 5) {
     std::string endpoint = "";
     endpoint += argv[2];
     endpoint += '/';
     endpoint += argv[4];
-    std ::ifstream filestream(endpoint, std::ios::binary);
-    std ::string s;
-    std ::string all;
-    while (getline(filestream, s)) {
-      all += s;
-    }
-      std :: cout << all << std :: endl;
-    int id = 46;
-    // for(int i = 0 ;i < all.size() ;i ++){
-    //   std :: cout << i <<  " " << (int)(all[i]) <<  " " << all[i] <<
-    //   std::endl;
-    // }
-    int sz = (int)(all[45]);
-    while (sz > 0) {
-      bin_key += all[id];
-      id++;
-      sz--;
-    }
-
-    int value_sz = (int)(all[id]);
-    id++;
-    while (value_sz > 0) {
-      bin_value += all[id];
-      id++;
-      value_sz--;
-    }
-    std ::cout <<  " key is " << bin_key << std ::endl;
-    std ::cout <<  " value is " << bin_value << std ::endl;
+    RDBParser* rdbParser = new RDBParser();
+    v = rdbParser->read_path(endpoint);
   }
-  std::vector<std::pair<std::string, std::string> > v;
-  v.push_back({bin_key, bin_value});
 
   while (true) {
 
