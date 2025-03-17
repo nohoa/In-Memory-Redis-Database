@@ -2,6 +2,7 @@
 #include "Redis.h"
 #include <arpa/inet.h>
 #include <chrono>
+#include <cstdint>
 #include <cstdlib>
 #include <cstring>
 #include <filesystem>
@@ -18,6 +19,7 @@
 #include <type_traits>
 #include <unistd.h>
 #include <vector>
+#include<sstream>
 #include "RDB Reader/RDBParser.hpp"
 
 std::mutex mutex_guard;
@@ -46,7 +48,16 @@ void handle_connect(
 
   long current_time = get_current_time_ms();
   for (auto it : additional_pair) {
-        key_value_storage->set(it[0], it[1], current_time + 999999999999);
+        if(it[2] == "-1"){
+          key_value_storage->set(it[0], it[1], current_time + 999999999999);
+        }
+        else {
+            // int64_t unixTime;
+            // std::stringstream ss1(it[2]);
+            // ss1 >> unixTime;
+            //std::cout << current_time <<" " << stol(it[2]) << std::endl;
+            key_value_storage->set(it[0], it[1],  stol(it[2]));
+        }
       }
   //std ::cout << additional_pair.size() << std::endl;
   for (int i = 1; i < argc; i += 2) {

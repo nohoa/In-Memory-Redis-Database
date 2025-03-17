@@ -25,7 +25,9 @@ void In_Memory_Storage :: clean(long long current_time ){
     std :: map<std::string , std :: pair<std :: string , long long > > tmp ;
    // std :: cout << current_time << std :: endl;
    // std :: cout << "Size before " << storage.size() << std :: endl; 
+    //std :: cout << current_time << std::endl;
     for(auto it : storage){
+        //std :: cout << it.second.second << std::endl;
         if(it.second.second  >= current_time){
             tmp[it.first] = it.second;
         }
