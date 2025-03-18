@@ -99,12 +99,12 @@ std::vector<std::vector<std::string> >  RDBParser :: read_path(std::string endpo
       value_sz--;
       }
     }
-    uint64_t unixTime;
-    std::stringstream ss1(experity);
-    ss1 >> unixTime;  // Convert string to integer
-    std :: cout << "experity is " << current_time_in_ms << std::endl;
-    std ::cout <<  " key is " << bin_key << std ::endl;
-    std ::cout <<  " value is " << bin_value << std ::endl;
+    // uint64_t unixTime;
+    // std::stringstream ss1(experity);
+    // ss1 >> unixTime;  // Convert string to integer
+    // // std :: cout << "experity is " << current_time_in_ms << std::endl;
+    // // std ::cout <<  " key is " << bin_key << std ::endl;
+    // // std ::cout <<  " value is " << bin_value << std ::endl;
     std::vector<std::string > merge ;
     merge.push_back(bin_key);
     merge.push_back(bin_value);

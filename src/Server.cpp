@@ -52,14 +52,10 @@ void handle_connect(
           key_value_storage->set(it[0], it[1], current_time + 999999999999);
         }
         else {
-            // int64_t unixTime;
-            // std::stringstream ss1(it[2]);
-            // ss1 >> unixTime;
-            //std::cout << current_time <<" " << stol(it[2]) << std::endl;
+
             key_value_storage->set(it[0], it[1],  stol(it[2]));
         }
       }
-  //std ::cout << additional_pair.size() << std::endl;
   for (int i = 1; i < argc; i += 2) {
     if (i + 1 < argc) {
       std::string key = argv[i];
@@ -90,9 +86,7 @@ void handle_connect(
       response = "+PONG\r\n";
     } else if (parser_list[0] == "SET") {
       long current_time_in_ms = get_current_time_ms();
-      // std :: cout <<  "Time is " << current_time_in_ms << std :: endl;
-      // std :: cout <<  "Time is " << current_time_in_ms +
-      // stoi(parser_list.back()) << std :: endl;
+
       response = "+OK\r\n";
       if (parser_list.size() > 3)
         key_value_storage->set(parser_list[1], parser_list[2],
@@ -101,12 +95,12 @@ void handle_connect(
         key_value_storage->set(parser_list[1], parser_list[2],
                                current_time_in_ms + 999999999999);
 
-      // std :: cout << "size is " << parser->getSize() << std :: endl;
+
     } else if (parser_list[0] == "GET") {
       long current_time_in_ms = get_current_time_ms();
-      // std :: cout <<  "Time is " << current_time_in_ms << std :: endl;
+  
       response = key_value_storage->get(parser_list[1], current_time_in_ms);
-      //std ::cout << response << std ::endl;
+
       if (response == "") {
         response = "$-1\r\n";
       } else {
@@ -115,7 +109,6 @@ void handle_connect(
       }
     } else if (parser_list[0] == "CONFIG") {
       if (parser_list[1] == "GET") {
-        std ::cout << "Key is " + parser_list[2] << std ::endl;
         response = key_value_storage->get(parser_list[2], 0);
         if (response == "") {
           response = "$-1\r\n";
@@ -146,17 +139,11 @@ void handle_connect(
         response += parser_list[i] + "\r\n";
       }
     }
-    std ::cout << "Response is " << response << std ::endl;
 
-    // std :: cout <<
+
 
     send(client_fd, response.c_str(), response.length(), 0);
 
-    // std :: cout << ans.size() << std :: endl;
-    // std :: cout << ans[0]  << std :: endl ;
-
-    // guard.unlock();
-    //
   }
   close(client_fd);
 }
@@ -189,6 +176,15 @@ int main(int argc, char **argv) {
   server_addr.sin_family = AF_INET;
   server_addr.sin_addr.s_addr = INADDR_ANY;
   server_addr.sin_port = htons(6379);
+
+  struct sockaddr_in replica_server_addr;
+  if(argc >= 3){
+  std :: string port_exist = argv[1];
+  if(port_exist.compare("--port") == 0){
+  int port_no = (std::stoi)(argv[2]);
+  server_addr.sin_port = htons(port_no);
+  }
+  }
 
   if (bind(server_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)) !=
       0) {
