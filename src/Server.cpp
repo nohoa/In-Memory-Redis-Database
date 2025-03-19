@@ -131,6 +131,21 @@ void handle_connect(
         response += it + "\r\n";
       }
 
+    }
+    else if(parser_list[0] == "INFO"){
+      for(auto it : parser_list){
+          std :: cout << it << std::endl;
+      }
+      response = "$11\r\nrole:master\r\n";
+      //bool is_replication = false;
+      // if(argc >= 5){
+      //   std :: string replica = argv[3];
+      //   if(replica.compare("--replicaof") == 0){
+      //     //is_replication = true ;
+      //      response = "$10\r\nrole:slave\r\n";
+      //   }
+
+      // }
     } else {
       for (int i = 1; i < parser_list.size(); i++) {
         response += '$';
@@ -182,15 +197,24 @@ int main(int argc, char **argv) {
   std :: string port_exist = argv[1];
   if(port_exist.compare("--port") == 0){
   int port_no = (std::stoi)(argv[2]);
+  //std :: cout << port_no << std :: endl;
   server_addr.sin_port = htons(port_no);
-  }
+    }
   }
 
   if (bind(server_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)) !=
       0) {
     std::cerr << "Failed to bind to port 6379\n";
     return 1;
-  }
+   }
+  // else {
+  //   server_addr.sin_port =  htons(6380);
+  //   if (bind(server_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)) !=
+  //     0) {
+  //   std::cerr << "Failed to bind to port 6380\n";
+  //   return 1;
+  //     }
+  // }
 
   int connection_backlog = 5;
   if (listen(server_fd, connection_backlog) != 0) {
@@ -209,6 +233,7 @@ int main(int argc, char **argv) {
   std ::string bin_key;
   std ::string bin_value;
   std::vector<std::vector<std::string> > v;
+
   if (argc >= 5) {
     std::string endpoint = "";
     endpoint += argv[2];
