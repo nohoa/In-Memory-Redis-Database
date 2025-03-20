@@ -138,14 +138,14 @@ void handle_connect(
       }
       response = "$11\r\nrole:master\r\n";
       //bool is_replication = false;
-      // if(argc >= 5){
-      //   std :: string replica = argv[3];
-      //   if(replica.compare("--replicaof") == 0){
-      //     //is_replication = true ;
-      //      response = "$10\r\nrole:slave\r\n";
-      //   }
+      if(argc >= 5){
+        std :: string replica = argv[3];
+        if(replica.compare("--replicaof") == 0){
+          //is_replication = true ;
+           response = "$10\r\nrole:slave\r\n";
+        }
 
-      // }
+      }
     } else {
       for (int i = 1; i < parser_list.size(); i++) {
         response += '$';
