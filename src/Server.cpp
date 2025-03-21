@@ -1,4 +1,5 @@
 #include "Map.h"
+#include "RDB Reader/RDBParser.hpp"
 #include "Redis.h"
 #include <arpa/inet.h>
 #include <chrono>
@@ -12,6 +13,7 @@
 #include <mutex>
 #include <netdb.h>
 #include <netinet/in.h>
+#include <sstream>
 #include <string>
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -19,8 +21,6 @@
 #include <type_traits>
 #include <unistd.h>
 #include <vector>
-#include<sstream>
-#include "RDB Reader/RDBParser.hpp"
 
 std::mutex mutex_guard;
 std ::string to_lower(std ::string s) {
@@ -40,22 +40,20 @@ long get_current_time_ms() {
   long current_time_in_ms = value.count();
   return current_time_in_ms;
 }
-void handle_connect(
-    int client_fd, int argc, char **argv,
-    std::vector<std::vector<std::string> > additional_pair) {
+void handle_connect(int client_fd, int argc, char **argv,
+                    std::vector<std::vector<std::string>> additional_pair) {
   std ::unique_ptr<In_Memory_Storage> key_value_storage{
       std::make_unique<In_Memory_Storage>()};
 
   long current_time = get_current_time_ms();
   for (auto it : additional_pair) {
-        if(it[2] == "-1"){
-          key_value_storage->set(it[0], it[1], current_time + 999999999999);
-        }
-        else {
+    if (it[2] == "-1") {
+      key_value_storage->set(it[0], it[1], current_time + 999999999999);
+    } else {
 
-            key_value_storage->set(it[0], it[1],  stol(it[2]));
-        }
-      }
+      key_value_storage->set(it[0], it[1], stol(it[2]));
+    }
+  }
   for (int i = 1; i < argc; i += 2) {
     if (i + 1 < argc) {
       std::string key = argv[i];
@@ -95,10 +93,9 @@ void handle_connect(
         key_value_storage->set(parser_list[1], parser_list[2],
                                current_time_in_ms + 999999999999);
 
-
     } else if (parser_list[0] == "GET") {
       long current_time_in_ms = get_current_time_ms();
-  
+
       response = key_value_storage->get(parser_list[1], current_time_in_ms);
 
       if (response == "") {
@@ -131,20 +128,42 @@ void handle_connect(
         response += it + "\r\n";
       }
 
-    }
-    else if(parser_list[0] == "INFO"){
-      for(auto it : parser_list){
-          std :: cout << it << std::endl;
-      }
-      response = "$11\r\nrole:master\r\n";
-      //bool is_replication = false;
-      if(argc >= 5){
-        std :: string replica = argv[3];
-        if(replica.compare("--replicaof") == 0){
-          //is_replication = true ;
-           response = "$10\r\nrole:slave\r\n";
-        }
+    } else if (parser_list[0] == "INFO") {
 
+      response = "$11\r\nrole:master\r\n";
+      // bool is_replication = false;
+      if (argc >= 5) {
+        std ::string replica = argv[3];
+        if (replica.compare("--replicaof") == 0) {
+          // is_replication = true ;
+          response = "$10\r\nrole:slave\r\n";
+        }
+      }
+      //std ::cout << "response here" << std::endl;
+      std ::string replied_id =
+          "master_replid:8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb";
+      std ::string master_repl_offset = "master_repl_offset:0";
+      std::vector<std::string> replications;
+      replications.push_back(response);
+      replications.push_back(replied_id);
+      replications.push_back(master_repl_offset);
+      int sz = 0;
+      for(auto it : replications){
+        sz += it.size();
+      }
+      sz += 2*(replications.size()-1);
+      std :: string current = response ;
+      response.clear();
+      response += '$';
+      response += std::to_string(sz);
+      response +="\r\n";
+      //std :: cout << response << std::endl;
+      for (auto it : replications) {
+        //std :: cout << it << std::endl;
+        //response += std::to_string(it.length());
+        //response += "\r\n";
+        response += it;
+        response += "\r\n";
       }
     } else {
       for (int i = 1; i < parser_list.size(); i++) {
@@ -155,10 +174,7 @@ void handle_connect(
       }
     }
 
-
-
     send(client_fd, response.c_str(), response.length(), 0);
-
   }
   close(client_fd);
 }
@@ -193,12 +209,12 @@ int main(int argc, char **argv) {
   server_addr.sin_port = htons(6379);
 
   struct sockaddr_in replica_server_addr;
-  if(argc >= 3){
-  std :: string port_exist = argv[1];
-  if(port_exist.compare("--port") == 0){
-  int port_no = (std::stoi)(argv[2]);
-  //std :: cout << port_no << std :: endl;
-  server_addr.sin_port = htons(port_no);
+  if (argc >= 3) {
+    std ::string port_exist = argv[1];
+    if (port_exist.compare("--port") == 0) {
+      int port_no = (std::stoi)(argv[2]);
+      // std :: cout << port_no << std :: endl;
+      server_addr.sin_port = htons(port_no);
     }
   }
 
@@ -206,10 +222,11 @@ int main(int argc, char **argv) {
       0) {
     std::cerr << "Failed to bind to port 6379\n";
     return 1;
-   }
+  }
   // else {
   //   server_addr.sin_port =  htons(6380);
-  //   if (bind(server_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)) !=
+  //   if (bind(server_fd, (struct sockaddr *)&server_addr, sizeof(server_addr))
+  //   !=
   //     0) {
   //   std::cerr << "Failed to bind to port 6380\n";
   //   return 1;
@@ -232,14 +249,14 @@ int main(int argc, char **argv) {
   //
   std ::string bin_key;
   std ::string bin_value;
-  std::vector<std::vector<std::string> > v;
+  std::vector<std::vector<std::string>> v;
 
   if (argc >= 5) {
     std::string endpoint = "";
     endpoint += argv[2];
     endpoint += '/';
     endpoint += argv[4];
-    RDBParser* rdbParser = new RDBParser();
+    RDBParser *rdbParser = new RDBParser();
     v = rdbParser->read_path(endpoint);
   }
 
