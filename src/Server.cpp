@@ -136,6 +136,7 @@ void handle_connect(int client_fd, int argc, char **argv,
         std ::string replica = argv[3];
         if (replica.compare("--replicaof") == 0) {
           // is_replication = true ;
+
           response = "$10\r\nrole:slave\r\n";
         }
       }
@@ -187,6 +188,10 @@ int main(int argc, char **argv) {
   // for (int i = 0; i < argc; i++) {
   //   std ::cout << argv[i] << std ::endl;
   // }
+  std::vector<std::string> argument ;
+  for(int i = 0 ;i  < argc ;i ++){
+    argument.push_back(argv[i]);
+  }
 
   int server_fd = socket(AF_INET, SOCK_STREAM, 0);
   if (server_fd < 0) {
@@ -209,13 +214,50 @@ int main(int argc, char **argv) {
   server_addr.sin_port = htons(6379);
 
   struct sockaddr_in replica_server_addr;
-  if (argc >= 3) {
+  if (argc == 3) {
     std ::string port_exist = argv[1];
     if (port_exist.compare("--port") == 0) {
       int port_no = (std::stoi)(argv[2]);
       // std :: cout << port_no << std :: endl;
       server_addr.sin_port = htons(port_no);
     }
+  }
+  else if(argc >= 5 && argument[3].compare("--replicaof") == 0){
+    std::string port = argv[4];
+     std :: cout << port  << std::endl;
+    std :: string port_no = "";
+    int id = port.size()-1;
+    while(port[id]  >= '0' && port[id] <= '9'){
+      port_no += port[id];
+      id --;
+    }
+    std::reverse(port_no.begin(),port_no.end());
+   // std :: cout << port_no << std::endl ;
+    //std :: cout << port << std::endl;
+    struct sockaddr_in back_up_addr;
+    back_up_addr.sin_family = AF_INET;
+    back_up_addr.sin_addr.s_addr = INADDR_ANY;
+    back_up_addr.sin_port = htons(std::stoi(port_no));
+    int backup_fd ;
+    if((backup_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0){
+       std :: cout << "Error  socket creation" << std :: endl;
+       return - 1 ;
+    }
+    std :: cout << "Connecting to master " << std:: endl;
+
+    int status ;
+     if ((status
+         = connect(backup_fd, (struct sockaddr*)&back_up_addr,
+                   sizeof(back_up_addr)))
+        < 0) {
+        printf("\nConnection Failed \n");
+    }
+    else {
+    std :: string SEND_PING  = "*1\r\n$4\r\nPING\r\n";
+    send(backup_fd,SEND_PING.c_str(),SEND_PING.length(),0);
+    server_addr.sin_port = htons(std::stoi(argv[2]));
+    }
+
   }
 
   if (bind(server_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)) !=
@@ -249,7 +291,7 @@ int main(int argc, char **argv) {
   //
   std ::string bin_key;
   std ::string bin_value;
-  std::vector<std::vector<std::string>> v;
+  std::vector<std::vector<std::string> > v;
 
   if (argc >= 5) {
     std::string endpoint = "";
