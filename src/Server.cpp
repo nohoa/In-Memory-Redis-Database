@@ -1,6 +1,7 @@
 #include "Map.h"
 #include "RDB Reader/RDBParser.hpp"
 #include "Redis.h"
+#include "Client/Client.hpp"
 #include <arpa/inet.h>
 #include <chrono>
 #include <cstdint>
@@ -41,10 +42,9 @@ long get_current_time_ms() {
   return current_time_in_ms;
 }
 void handle_connect(int client_fd, int argc, char **argv,
-                    std::vector<std::vector<std::string>> additional_pair) {
+                    std::vector<std::vector<std::string> > additional_pair) {
   std ::unique_ptr<In_Memory_Storage> key_value_storage{
       std::make_unique<In_Memory_Storage>()};
-
   long current_time = get_current_time_ms();
   for (auto it : additional_pair) {
     if (it[2] == "-1") {
@@ -67,12 +67,15 @@ void handle_connect(int client_fd, int argc, char **argv,
     char msg[1024] = {};
     int rc = recv(client_fd, &msg, sizeof(msg), 0);
 
+    //std::cout << rc << std:: endl;
+
     if (rc <= 0) {
       close(client_fd);
       break;
     }
     // std::lock_guard<std::mutex> guard(mutex_guard);
     std ::string header = msg;
+
 
     std ::string response = "";
 
@@ -82,6 +85,7 @@ void handle_connect(int client_fd, int argc, char **argv,
 
     if (parser_list[0] == "PING") {
       response = "+PONG\r\n";
+      //std :: cout << "go here " << std::endl;
     } else if (parser_list[0] == "SET") {
       long current_time_in_ms = get_current_time_ms();
 
@@ -176,6 +180,7 @@ void handle_connect(int client_fd, int argc, char **argv,
     }
 
     send(client_fd, response.c_str(), response.length(), 0);
+
   }
   close(client_fd);
 }
@@ -224,40 +229,13 @@ int main(int argc, char **argv) {
   }
   else if(argc >= 5 && argument[3].compare("--replicaof") == 0){
     std::string port = argv[4];
-     std :: cout << port  << std::endl;
-    std :: string port_no = "";
-    int id = port.size()-1;
-    while(port[id]  >= '0' && port[id] <= '9'){
-      port_no += port[id];
-      id --;
-    }
-    std::reverse(port_no.begin(),port_no.end());
-   // std :: cout << port_no << std::endl ;
-    //std :: cout << port << std::endl;
-    struct sockaddr_in back_up_addr;
-    back_up_addr.sin_family = AF_INET;
-    back_up_addr.sin_addr.s_addr = INADDR_ANY;
-    back_up_addr.sin_port = htons(std::stoi(port_no));
-    int backup_fd ;
-    if((backup_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0){
-       std :: cout << "Error  socket creation" << std :: endl;
-       return - 1 ;
-    }
-    std :: cout << "Connecting to master " << std:: endl;
+    std :: string replica_no = argv[2];
 
-    int status ;
-     if ((status
-         = connect(backup_fd, (struct sockaddr*)&back_up_addr,
-                   sizeof(back_up_addr)))
-        < 0) {
-        printf("\nConnection Failed \n");
-    }
-    else {
-    std :: string SEND_PING  = "*1\r\n$4\r\nPING\r\n";
-    send(backup_fd,SEND_PING.c_str(),SEND_PING.length(),0);
-    server_addr.sin_port = htons(std::stoi(argv[2]));
-    }
-
+    std ::unique_ptr<Client_Request> client{std::make_unique<Client_Request>()};
+   int status = client->send_request(port,replica_no,std::ref(server_addr));
+   std :: cout << status << std::endl;
+   //std :: cout << server_addr.sin_port << std ::endl;
+    if(status == -1) return -1;
   }
 
   if (bind(server_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)) !=
