@@ -42,10 +42,12 @@
     while( recv(backup_fd, &msg, sizeof(msg), 0) <= 0 ) ;
     SEND_REPLCONF = "*3\r\n$8\r\nREPLCONF\r\n$4\r\ncapa\r\n$6\r\npsync2\r\n";
     send(backup_fd,SEND_REPLCONF.c_str(),SEND_REPLCONF.length(),0);
-   //  std :: string SEND_REPLCONF = "*3\r\n$8\r\nREPLCONF\r\n$14\r\nlistening-port\r\n$4\r\n6380\r\n";
-   //  send(backup_fd,SEND_REPLCONF.c_str(),SEND_REPLCONF.length(),0);
-   // SEND_REPLCONF = "*3\r\n$8\r\nREPLCONF\r\n$4\r\ncapa\r\n$6\r\npsync2\r\n";
-   // send(backup_fd,SEND_REPLCONF.c_str(),SEND_REPLCONF.length(),0);
+
+    while( recv(backup_fd, &msg, sizeof(msg), 0) <= 0 ) ;
+
+    std :: string synch = "*3\r\n$5\r\nPSYNC\r\n$1\r\n?\r\n$2\r\n-1\r\n";
+    send(backup_fd,synch.c_str(),synch.length(),0);
+    
     }
     server_addr.sin_port = htons(std::stoi(replica_no)) ;
 
