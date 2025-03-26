@@ -83,6 +83,7 @@ void handle_connect(int client_fd, int argc, char **argv,
 
     std ::vector<std ::string> parser_list = parser->get_command(header);
 
+
     if (parser_list[0] == "PING") {
       response = "+PONG\r\n";
       //std :: cout << "go here " << std::endl;
@@ -170,7 +171,11 @@ void handle_connect(int client_fd, int argc, char **argv,
         response += it;
         response += "\r\n";
       }
-    } else {
+    } 
+    else if(parser_list[0] == "REPLCONF"){
+      response = "$2\r\nOK\r\n";
+    }
+    else {
       for (int i = 1; i < parser_list.size(); i++) {
         response += '$';
         response += std::to_string(parser_list[i].size());
