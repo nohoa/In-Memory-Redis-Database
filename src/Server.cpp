@@ -46,6 +46,7 @@ void handle_connect(int client_fd, int argc, char **argv,
   std ::unique_ptr<In_Memory_Storage> key_value_storage{
       std::make_unique<In_Memory_Storage>()};
   long current_time = get_current_time_ms();
+  std :: string master_id = "8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb";
   for (auto it : additional_pair) {
     if (it[2] == "-1") {
       key_value_storage->set(it[0], it[1], current_time + 999999999999);
@@ -174,6 +175,10 @@ void handle_connect(int client_fd, int argc, char **argv,
     } 
     else if(parser_list[0] == "REPLCONF"){
       response = "$2\r\nOK\r\n";
+    }
+    else if(parser_list[0] == "PSYNC"){
+      std ::string response_str = "+FULLRESYNC 8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb 0\r\n ";
+      response = "$" + std::to_string(response_str.size()) +"\r\n"+response_str + "\r\n";
     }
     else {
       for (int i = 1; i < parser_list.size(); i++) {
