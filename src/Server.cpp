@@ -41,8 +41,12 @@ long get_current_time_ms() {
   long current_time_in_ms = value.count();
   return current_time_in_ms;
 }
+std::vector<std::string>  set_client1 ;
+std :: vector<int> replica_id1 ;
+
 void handle_connect(int client_fd, int argc, char **argv,
                     std::vector<std::vector<std::string> > additional_pair) {
+                      std :: cout << "here" << std::endl;
   std ::unique_ptr<In_Memory_Storage> key_value_storage{
       std::make_unique<In_Memory_Storage>()};
   long current_time = get_current_time_ms();
@@ -66,13 +70,24 @@ void handle_connect(int client_fd, int argc, char **argv,
   }
   int sz = 0 ;
   while (true) {
+   // std :: cout << "new command" << std :: endl;
     char msg[1024] = {};
     int rc = recv(client_fd, &msg, sizeof(msg), 0);
 
     //std::cout << rc << std:: endl;
+    std :: cout << rc << std:: endl;
+    std :: cout << std::endl;
 
     if (rc <= 0) {
-      close(client_fd);
+      //std :: cout << "new cmd" << std :: endl;
+      //std :: cout << set_client.size() << std::endl;
+      std :: string res = "$1\r\na";
+      send(client_fd, res.c_str(), res.length(), 0);
+      for(auto it : set_client1){
+        //std :: cout << it << std :: endl;
+        send(client_fd, it.c_str(), it.length(), 0);
+      }
+      //close(client_fd);
       break;
     }
     // std::lock_guard<std::mutex> guard(mutex_guard);
@@ -85,25 +100,55 @@ void handle_connect(int client_fd, int argc, char **argv,
 
     std ::vector<std ::string> parser_list = parser->get_command(header);
 
+    std :: vector<std::string > all_cmd  = parser->get_client_command(header);
+
 
     if (parser_list[0] == "PING") {
       response = "+PONG\r\n";
       //std :: cout << "go here " << std::endl;
     } else if (parser_list[0] == "SET") {
+
+     // std :: cout << "here ? " << std :: endl;
       long current_time_in_ms = get_current_time_ms();
 
       response = "+OK\r\n";
+      //std :: cout << parser_list[1] <<" " << parser_list[2] << std :: endl;
       if (parser_list.size() > 3)
         key_value_storage->set(parser_list[1], parser_list[2],
                                current_time_in_ms + stoi(parser_list.back()));
       else
         key_value_storage->set(parser_list[1], parser_list[2],
                                current_time_in_ms + 999999999999);
-
+        
+      //int status = send(client_fd, response.c_str(), response.length(), 0);
+      //response = "$";
+      std :: string set_response ="*" ;
+      set_response += std::to_string(all_cmd.size());
+      set_response += "\r\n";
+      for(auto it : all_cmd) {
+        set_response += "$";
+        set_response += std::to_string(it.size());
+        set_response += "\r\n";
+        set_response += it;
+        set_response += "\r\n";
+      }         
+      for(int i = 0 ;i < replica_id1.size() ;i ++){
+       // std :: cout << replica_id[i] << std :: endl;
+        write(replica_id1[i],set_response.c_str(),set_response.size());
+      }
+      //write(client_fd,set_response.c_str(),set_response.size());
+      //std :: cout << "here ? " << std :: endl;
+      // response += std::to_string(all_response.length());
+      // response += "\r\n" ;
+      // response += all_response;
+      // response += "\r\n";
     } else if (parser_list[0] == "GET") {
+      //std :: cout << "??" << std :: endl;
       long current_time_in_ms = get_current_time_ms();
 
       response = key_value_storage->get(parser_list[1], current_time_in_ms);
+     // std :: cout << "lol" << std :: endl;
+      //std :: cout << "response is " << response << std :: endl;
 
       if (response == "") {
         response = "$-1\r\n";
@@ -113,6 +158,7 @@ void handle_connect(int client_fd, int argc, char **argv,
       }
     } else if (parser_list[0] == "CONFIG") {
       if (parser_list[1] == "GET") {
+       // std :: cout << replica_id[0] << std :: endl;
         response = key_value_storage->get(parser_list[2], 0);
         if (response == "") {
           response = "$-1\r\n";
@@ -178,6 +224,8 @@ void handle_connect(int client_fd, int argc, char **argv,
       response = "$2\r\nOK\r\n";
     }
     else if(parser_list[0] == "PSYNC"){
+      //std :: cout << "synccc" << std :: endl;
+      replica_id1.push_back(client_fd);
       std ::string response_str = "+FULLRESYNC 8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb 0\r\n ";
       response = "$" + std::to_string(response_str.size()) +"\r\n"+response_str + "\r\n";
       send(client_fd, response.c_str(), response.length(), 0);
@@ -185,6 +233,7 @@ void handle_connect(int client_fd, int argc, char **argv,
       std:: string empty_RDB_file =  "\x52\x45\x44\x49\x53\x30\x30\x31\x31\xfa\x09\x72\x65\x64\x69\x73\x2d\x76\x65\x72\x05\x37\x2e\x32\x2e\x30\xfa\x0a\x72\x65\x64\x69\x73\x2d\x62\x69\x74\x73\xc0\x40\xfa\x05\x63\x74\x69\x6d\x65\xc2\x6d\x08\xbc\x65\xfa\x08\x75\x73\x65\x64\x2d\x6d\x65\x6d\xc2\xb0\xc4\x10\x00\xfa\x08\x61\x6f\x66\x2d\x62\x61\x73\x65\xc0\x00\xff\xf0\x6e\x3b\xfe\xc0\xff\x5a\xa2";
 
         response  =  "$"+ std::to_string(empty_RDB_file.size()) +"\r\n"+empty_RDB_file ;
+
     }
     else {
       for (int i = 1; i < parser_list.size(); i++) {
@@ -193,17 +242,19 @@ void handle_connect(int client_fd, int argc, char **argv,
         response += "\r\n";
         response += parser_list[i] + "\r\n";
       }
+
     }
-
-   send(client_fd, response.c_str(), response.length(), 0);
-   
+   if(response.size() > 0) send(client_fd, response.c_str(), response.length(), 0);
+    //std :: cout << "finish" << std :: endl;
   }
-  sz = 0;
-  //std :: cout << "end" << std::endl;
-  
-  std:: string empty_RDB_file = "UkVESVMwMDEx+glyZWRpcy12ZXIFNy4yLjD6CnJlZGlzLWJpdHPAQPoFY3RpbWXCbQi8ZfoIdXNlZC1tZW3CsMQQAPoIYW9mLWJhc2XAAP/wbjv+wP9aog==";
+  std :: cout << "ed" << std::endl;
 
-  std :: string file_response  =  "$";
+  // sz = 0;
+  // //std :: cout << "end" << std::endl;
+  
+  // std:: string empty_RDB_file = "UkVESVMwMDEx+glyZWRpcy12ZXIFNy4yLjD6CnJlZGlzLWJpdHPAQPoFY3RpbWXCbQi8ZfoIdXNlZC1tZW3CsMQQAPoIYW9mLWJhc2XAAP/wbjv+wP9aog==";
+
+  // std :: string file_response  =  "$";
 
   //send(client_fd, file_response.c_str(), file_response.length(), 0);
 
@@ -258,15 +309,28 @@ int main(int argc, char **argv) {
     }
   }
   else if(argc >= 5 && argument[3].compare("--replicaof") == 0){
+
+    std ::string bin_key;
+  std ::string bin_value;
+  std::vector<std::vector<std::string> > v;
+
+    std::string endpoint = "";
+    endpoint += argv[2];
+    endpoint += '/';
+    endpoint += argv[4];
+    RDBParser *rdbParser = new RDBParser();
+    v = rdbParser->read_path(endpoint);
     std::string port = argv[4];
     std :: string replica_no = argv[2];
 
     std ::unique_ptr<Client_Request> client{std::make_unique<Client_Request>()};
-   int status = client->send_request(port,replica_no,std::ref(server_addr));
-   std :: cout << status << std::endl;
+   int status = client->send_request(port,replica_no,std::ref(server_addr), server_fd,argc,argv);
+   //std :: cout << status << std::endl;
    //std :: cout << server_addr.sin_port << std ::endl;
-    if(status == -1) return -1;
+    //if(status == -1) return -1;
+    
   }
+//  std :: cout << "out here" << std :: endl;
 
   if (bind(server_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)) !=
       0) {
@@ -289,6 +353,9 @@ int main(int argc, char **argv) {
     return 1;
   }
 
+  
+
+
   struct sockaddr_in client_addr;
   int client_addr_len = sizeof(client_addr);
   std::cout << "Waiting for a client to connect...\n";
@@ -309,6 +376,8 @@ int main(int argc, char **argv) {
     RDBParser *rdbParser = new RDBParser();
     v = rdbParser->read_path(endpoint);
   }
+
+  //std :: cout << "here ?" << std :: endl;
 
   while (true) {
 

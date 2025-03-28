@@ -20,6 +20,10 @@ class Redis {
     
     virtual std :: vector<std :: string> get_command(std :: string response);
 
+    virtual std :: vector<std::string > get_all_command(std :: string response);
+
+    virtual std :: vector<std::string > get_client_command(std :: string response);
+
 }; 
 
 #endif
