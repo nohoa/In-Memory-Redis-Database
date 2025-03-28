@@ -64,6 +64,7 @@ void handle_connect(int client_fd, int argc, char **argv,
                              current_time_in_ms + 999999999999);
     }
   }
+  int sz = 0 ;
   while (true) {
     char msg[1024] = {};
     int rc = recv(client_fd, &msg, sizeof(msg), 0);
@@ -179,6 +180,11 @@ void handle_connect(int client_fd, int argc, char **argv,
     else if(parser_list[0] == "PSYNC"){
       std ::string response_str = "+FULLRESYNC 8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb 0\r\n ";
       response = "$" + std::to_string(response_str.size()) +"\r\n"+response_str + "\r\n";
+      send(client_fd, response.c_str(), response.length(), 0);
+
+      std:: string empty_RDB_file =  "\x52\x45\x44\x49\x53\x30\x30\x31\x31\xfa\x09\x72\x65\x64\x69\x73\x2d\x76\x65\x72\x05\x37\x2e\x32\x2e\x30\xfa\x0a\x72\x65\x64\x69\x73\x2d\x62\x69\x74\x73\xc0\x40\xfa\x05\x63\x74\x69\x6d\x65\xc2\x6d\x08\xbc\x65\xfa\x08\x75\x73\x65\x64\x2d\x6d\x65\x6d\xc2\xb0\xc4\x10\x00\xfa\x08\x61\x6f\x66\x2d\x62\x61\x73\x65\xc0\x00\xff\xf0\x6e\x3b\xfe\xc0\xff\x5a\xa2";
+
+        response  =  "$"+ std::to_string(empty_RDB_file.size()) +"\r\n"+empty_RDB_file ;
     }
     else {
       for (int i = 1; i < parser_list.size(); i++) {
@@ -189,9 +195,23 @@ void handle_connect(int client_fd, int argc, char **argv,
       }
     }
 
-    send(client_fd, response.c_str(), response.length(), 0);
-
+   send(client_fd, response.c_str(), response.length(), 0);
+   
   }
+  sz = 0;
+  //std :: cout << "end" << std::endl;
+  
+  std:: string empty_RDB_file = "UkVESVMwMDEx+glyZWRpcy12ZXIFNy4yLjD6CnJlZGlzLWJpdHPAQPoFY3RpbWXCbQi8ZfoIdXNlZC1tZW3CsMQQAPoIYW9mLWJhc2XAAP/wbjv+wP9aog==";
+
+  std :: string file_response  =  "$";
+
+  //send(client_fd, file_response.c_str(), file_response.length(), 0);
+
+  //std :: cout << file_response.size() << std :: endl ;
+  
+ // while((sz = send(client_fd, file_response.c_str(), file_response.length(), 0))  == 0 );
+
+
   close(client_fd);
 }
 
