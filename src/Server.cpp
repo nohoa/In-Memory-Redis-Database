@@ -1,7 +1,6 @@
 #include "Map.h"
 #include "RDB Reader/RDBParser.hpp"
 #include "Redis.h"
-#include "Client/Client.hpp"
 #include <arpa/inet.h>
 #include <chrono>
 #include <cstdint>
@@ -23,8 +22,9 @@
 #include <unistd.h>
 #include <vector>
 
+extern int send_request1 (std:: string& port,std:: string&replica_no,struct sockaddr_in& server_addr , int server_fd, int argc, char**argv);
 std::mutex mutex_guard;
-std ::string to_lower(std ::string s) {
+ std ::string to_lower(std ::string s) {
   std ::string ans;
   for (auto x : s) {
 
@@ -32,8 +32,10 @@ std ::string to_lower(std ::string s) {
   }
   return ans;
 }
+std ::unique_ptr<In_Memory_Storage> key_value_storage{
+  std::make_unique<In_Memory_Storage>()};
 
-long get_current_time_ms() {
+ long get_current_time_ms() {
   auto time_now = std::chrono::system_clock::now();
   auto now_in_ms =
       std::chrono::time_point_cast<std::chrono::milliseconds>(time_now);
@@ -41,14 +43,15 @@ long get_current_time_ms() {
   long current_time_in_ms = value.count();
   return current_time_in_ms;
 }
-std::vector<std::string>  set_client1 ;
-std :: vector<int> replica_id1 ;
+ std::vector<std::string>  set_client1 ;
+ std :: vector<int> replica_id1 ;
 
-void handle_connect(int client_fd, int argc, char **argv,
+ void handle_connect(int client_fd, int argc, char **argv,
                     std::vector<std::vector<std::string> > additional_pair) {
-                      std :: cout << "here" << std::endl;
-  std ::unique_ptr<In_Memory_Storage> key_value_storage{
-      std::make_unique<In_Memory_Storage>()};
+                     // std :: cout << "here" << std::endl;
+        //std :: cout << mutex_guard.try_lock() << std::endl;
+      //while(mutex_guard.try_lock() == false ) ;
+      //std :: cout << "mutex finished" << std :: endl;
   long current_time = get_current_time_ms();
   std :: string master_id = "8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb";
   for (auto it : additional_pair) {
@@ -75,8 +78,8 @@ void handle_connect(int client_fd, int argc, char **argv,
     int rc = recv(client_fd, &msg, sizeof(msg), 0);
 
     //std::cout << rc << std:: endl;
-    std :: cout << rc << std:: endl;
-    std :: cout << std::endl;
+    //std :: cout << rc << std:: endl;
+    //std :: cout << std::endl;
 
     if (rc <= 0) {
       //std :: cout << "new cmd" << std :: endl;
@@ -144,6 +147,7 @@ void handle_connect(int client_fd, int argc, char **argv,
       // response += "\r\n";
     } else if (parser_list[0] == "GET") {
       //std :: cout << "??" << std :: endl;
+      
       long current_time_in_ms = get_current_time_ms();
 
       response = key_value_storage->get(parser_list[1], current_time_in_ms);
@@ -247,7 +251,7 @@ void handle_connect(int client_fd, int argc, char **argv,
    if(response.size() > 0) send(client_fd, response.c_str(), response.length(), 0);
     //std :: cout << "finish" << std :: endl;
   }
-  std :: cout << "ed" << std::endl;
+  //std :: cout << "ed" << std::endl;
 
   // sz = 0;
   // //std :: cout << "end" << std::endl;
@@ -323,11 +327,16 @@ int main(int argc, char **argv) {
     std::string port = argv[4];
     std :: string replica_no = argv[2];
 
-    std ::unique_ptr<Client_Request> client{std::make_unique<Client_Request>()};
-   int status = client->send_request(port,replica_no,std::ref(server_addr), server_fd,argc,argv);
+    //std ::unique_ptr<Client_Request> client{std::make_unique<Client_Request>()};
+    std::thread th(send_request1,std::ref(port),std::ref(replica_no),std::ref(server_addr), server_fd,argc,argv);
+    th.detach();
+   //int status = client->send_request(port,replica_no,std::ref(server_addr), server_fd,argc,argv);
    //std :: cout << status << std::endl;
    //std :: cout << server_addr.sin_port << std ::endl;
     //if(status == -1) return -1;
+    int port_no = (std::stoi)(argv[2]);
+      // std :: cout << port_no << std :: endl;
+      server_addr.sin_port = htons(port_no);
     
   }
 //  std :: cout << "out here" << std :: endl;
@@ -337,6 +346,7 @@ int main(int argc, char **argv) {
     std::cerr << "Failed to bind to port 6379\n";
     return 1;
   }
+
   // else {
   //   server_addr.sin_port =  htons(6380);
   //   if (bind(server_fd, (struct sockaddr *)&server_addr, sizeof(server_addr))
