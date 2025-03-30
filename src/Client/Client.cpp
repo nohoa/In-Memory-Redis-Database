@@ -67,79 +67,156 @@ int send_request1(std::string &port, std::string &replica_no,
       ;
     SEND_REPLCONF = "*3\r\n$8\r\nREPLCONF\r\n$4\r\ncapa\r\n$6\r\npsync2\r\n";
     send(backup_fd, SEND_REPLCONF.c_str(), SEND_REPLCONF.length(), 0);
-    while (recv(backup_fd, &msg, sizeof(msg), 0) <= 0)
-      ;
+    while (recv(backup_fd, &msg, sizeof(msg), 0) <= 0);
     std ::string synch = "*3\r\n$5\r\nPSYNC\r\n$1\r\n?\r\n$2\r\n-1\r\n";
     send(backup_fd, synch.c_str(), synch.length(), 0);
-    while (recv(backup_fd, &msg, sizeof(msg), 0) <= 0)
-      ;
+    while (recv(backup_fd, &msg, sizeof(msg), 0) <= 0) ;
+   int total_size = 0 ;
+   // std :: string ack = "*3\r\n$8\r\nREPLCONF\r\n$3\r\nACK\r\n$1\r\n0\r\n";
+    //send(backup_fd,ack.c_str(),ack.length(),0);
 
-    std :: string ack = "*3\r\n$8\r\nREPLCONF\r\n$3\r\nACK\r\n$1\r\n0\r\n";
-    send(backup_fd,ack.c_str(),ack.length(),0);
+   // while(recv(backup_fd, &msg, sizeof(msg), 0) <= 0);
+
+     //total_size += ack.length();
 
 
     // for(int i  = 0 ;i < sz ;i ++){}
     std :: cout << "slave ready " << std::endl;
+    bool first_time = false;
     while (true) {
       std ::string all;
+     // std :: cout << "what ?" << std::endl;
       memset(msg, 0, sizeof(msg));
       int sz = recv(backup_fd, &msg, sizeof(msg), 0);
-         int start_id = 0;
-         while(start_id < sz && msg[start_id] != '*') start_id ++;
-      for (int i = start_id; i < sz; i++) {
-         std :: cout << msg[i];
-         //std :: cout << msg[i];
-        if (msg[i] == '*' || msg[i] == '$')
-          all += msg[i];
-        else if (msg[i] >= 'A' && msg[i] <= 'Z')
-          all += msg[i];
-        else if (msg[i] >= '0' && msg[i] <= '9')
-          all += msg[i];
-        else if (msg[i] >= 'a' && msg[i] <= 'z')
-          all += msg[i];
+       std :: cout << sz <<std::endl;
+       if (sz <= 0) {
+         // close(backup_fd);
+         break;
+       }
+      total_size += sz ;
+      // all.clear() ;
+      // for (int i = 0; i < sz; i++) {
+      //       //std :: cout << msg[i];
+      //       //std :: cout << msg[i];
+      //      if (msg[i] == '*' || msg[i] == '$')
+      //        all += msg[i];
+      //      else if (msg[i] >= 'A' && msg[i] <= 'Z')
+      //        all += msg[i];
+      //      else if (msg[i] >= '0' && msg[i] <= '9')
+      //        all += msg[i];
+      //      else if (msg[i] >= 'a' && msg[i] <= 'z')
+      //        all += msg[i];
+      //    }
+      //    std :: cout << all << std::endl;
+      int id = 0 ;
+      bool exist = false ;
+      //std :: cout << "what ?" << std::endl;
+      while(id < sz ){
+         if(id +2 < sz && msg[id] == 'A' && msg[id+1] == 'C' && msg[id+2] == 'K' ){
+            exist = true;
+            break;
+         }
+         id ++ ;
       }
-      std :: cout << std::endl;
-      int id = 0;
-      while(id < all.size()){
-          std::string key ;
-          std ::string value ;
-          while(id < all.size() &&all[id] != 'T'){
-             id ++;
-          }
-          id ++;
-          id ++;
-          id ++;
-          while(id < all.size() && all[id] != '$') {
-             key += all[id];
-             id ++;
-          }
-          //id ++;
-          id ++;
-          id ++;
-          while(id < all.size() && all[id] != '*') {
-             value += all[id];
-             id ++;
-          }
-         // std::vector<std::string > vv;
-          //vv.push_back(key);
-          //vv.push_back(value);
-          //vv.push_back("-1");
-          std :: cout << key << " " << value << std::endl;
-          long currtime = get_current_time_ms();
-          key_value_storage->set(key, value, currtime +999999999999);
+      //std :: cout << "exist" << std::endl;
+      //std :: cout << "does exist ? " << std::endl;
+      if(exist){
+         if(first_time == false){
+            first_time = true;
+            total_size = 0;
+         }
+         std :: string curr_size = std::to_string(std::to_string(total_size).length());
+          std :: string ack = "*3\r\n$8\r\nREPLCONF\r\n$3\r\nACK\r\n$" + curr_size + "\r\n" + std::to_string(total_size) +"\r\n";
+          send(backup_fd,ack.c_str(),ack.length(),0);
+          //while(recv(backup_fd, &msg, sizeof(msg), 0) <= 0);
+      }
+      else {
 
-         // v.push_back(vv);
-          //id ++;
+      //std::cout << sz << std::endl ;
+      // else if(sz >= 23 && msg[22] == 'G'){
+      //    std :: string curr_size = std::to_string(std::to_string(total_size).length());
+      //    std :: string ack = "*3\r\n$8\r\nREPLCONF\r\n$3\r\nACK\r\n$" + curr_size + "\r\n" + std::to_string(total_size) +"\r\n";
+      //    send(backup_fd,ack.c_str(),ack.length(),0);
+
+      //    while(recv(backup_fd, &msg, sizeof(msg), 0) <= 0);
+      // }
+     // std :: cout << std::endl;
+      //    int start_id = 0;
+      //    while(start_id < sz && msg[start_id] != '*') start_id ++;
+      // for (int i = start_id; i < sz; i++) {
+      //    //std :: cout << msg[i];
+      //    //std :: cout << msg[i];
+      //   if (msg[i] == '*' || msg[i] == '$')
+      //     all += msg[i];
+      //   else if (msg[i] >= 'A' && msg[i] <= 'Z')
+      //     all += msg[i];
+      //   else if (msg[i] >= '0' && msg[i] <= '9')
+      //     all += msg[i];
+      //   else if (msg[i] >= 'a' && msg[i] <= 'z')
+      //     all += msg[i];
+      // }
+      // int id = 0;
+      // //std :: cout << all <<std::endl;
+      // if(all[14] == 'G'){
+      //    std::string szz  = std::to_string(std::to_string(total_size).length());
+      //    ack = "*3\r\n$8\r\nREPLCONF\r\n$3\r\nACK\r\n$" +szz +"\r\n"+ std::to_string(total_size) +"\r\n";
+      //    send(backup_fd,ack.c_str(),ack.length(),0);
+      //    while(recv(backup_fd, &msg, sizeof(msg), 0) <= 0);
+      // }
+      // else {
+      // //std :: cout << std::endl;
+      int start_id = 0;
+      while(start_id < sz && msg[start_id] != '*') start_id ++;
+   for (int i = start_id; i < sz; i++) {
+      std :: cout << msg[i];
+      //std :: cout << msg[i];
+     if (msg[i] == '*' || msg[i] == '$')
+       all += msg[i];
+     else if (msg[i] >= 'A' && msg[i] <= 'Z')
+       all += msg[i];
+     else if (msg[i] >= '0' && msg[i] <= '9')
+       all += msg[i];
+     else if (msg[i] >= 'a' && msg[i] <= 'z')
+       all += msg[i];
+   }
+   std :: cout << std::endl;
+   int id = 0;
+   while(id < all.size()){
+       std::string key ;
+       std ::string value ;
+       while(id < all.size() &&all[id] != 'T'){
+          id ++;
+       }
+       id ++;
+       id ++;
+       id ++;
+       while(id < all.size() && all[id] != '$') {
+          key += all[id];
+          id ++;
+       }
+       //id ++;
+       id ++;
+       id ++;
+       while(id < all.size() && all[id] != '*') {
+          value += all[id];
+          id ++;
+       }
+      // std::vector<std::string > vv;
+       //vv.push_back(key);
+       //vv.push_back(value);
+       //vv.push_back("-1");
+       std :: cout << key << " " << value << std::endl;
+       long currtime = get_current_time_ms();
+       key_value_storage->set(key, value, currtime +999999999999);
+
+      // v.push_back(vv);
+       //id ++;
+         }
       }
+   }
       // std :: cout << msg[0] << std::endl;
       // std :: cout << total_size << std :: endl;
-      if (sz <= 0) {
-        // close(backup_fd);
-        break;
-      }
-    }
     std :: cout << "finished" << std::endl;
-    mutex_guard.unlock();
     //std ::cout << all << std::endl;
     // std::cout << sz << std::endl;
     // std  :: cout << "go here" << std :: endl;

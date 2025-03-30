@@ -12,9 +12,9 @@ std::string In_Memory_Storage :: get(std::string key,long long expiration_time) 
         
        // std :: cout << "current is " << storage.size() << std :: endl;
        // std :: cout << "key is " << key << std :: endl;
-        // for(auto it : storage) {
-        //     std :: cout << it.first << " " << it.second.first << std :: endl;
-        // }
+        for(auto it : storage) {
+            std :: cout << it.first << " " << it.second.first << std :: endl;
+        }
         if(!storage.count(key)){
                 return "";
         }

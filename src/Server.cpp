@@ -80,7 +80,6 @@ std ::unique_ptr<In_Memory_Storage> key_value_storage{
     //std::cout << rc << std:: endl;
     //std :: cout << rc << std:: endl;
     //std :: cout << std::endl;
-
     if (rc <= 0) {
       //std :: cout << "new cmd" << std :: endl;
       //std :: cout << set_client.size() << std::endl;
