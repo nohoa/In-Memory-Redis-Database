@@ -80,6 +80,7 @@ std ::unique_ptr<In_Memory_Storage> key_value_storage{
     //std::cout << rc << std:: endl;
     //std :: cout << rc << std:: endl;
     //std :: cout << std::endl;
+
     if (rc <= 0) {
       //std :: cout << "new cmd" << std :: endl;
       //std :: cout << set_client.size() << std::endl;
@@ -111,6 +112,7 @@ std ::unique_ptr<In_Memory_Storage> key_value_storage{
     } else if (parser_list[0] == "SET") {
 
      // std :: cout << "here ? " << std :: endl;
+     mutex_guard.lock();
       long current_time_in_ms = get_current_time_ms();
 
       response = "+OK\r\n";
@@ -138,6 +140,7 @@ std ::unique_ptr<In_Memory_Storage> key_value_storage{
        // std :: cout << replica_id[i] << std :: endl;
         write(replica_id1[i],set_response.c_str(),set_response.size());
       }
+      mutex_guard.unlock();
       //write(client_fd,set_response.c_str(),set_response.size());
       //std :: cout << "here ? " << std :: endl;
       // response += std::to_string(all_response.length());
@@ -147,11 +150,13 @@ std ::unique_ptr<In_Memory_Storage> key_value_storage{
     } else if (parser_list[0] == "GET") {
       //std :: cout << "??" << std :: endl;
       
+      mutex_guard.lock();
       long current_time_in_ms = get_current_time_ms();
 
       response = key_value_storage->get(parser_list[1], current_time_in_ms);
      // std :: cout << "lol" << std :: endl;
       //std :: cout << "response is " << response << std :: endl;
+      mutex_guard.unlock();
 
       if (response == "") {
         response = "$-1\r\n";
@@ -237,6 +242,9 @@ std ::unique_ptr<In_Memory_Storage> key_value_storage{
 
         response  =  "$"+ std::to_string(empty_RDB_file.size()) +"\r\n"+empty_RDB_file ;
 
+    }
+    else if(parser_list[0] == "WAIT"){
+      response = ":0\r\n";
     }
     else {
       for (int i = 1; i < parser_list.size(); i++) {
