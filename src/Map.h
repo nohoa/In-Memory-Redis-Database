@@ -19,6 +19,8 @@ class In_Memory_Storage {
 
     virtual void clean (long long current_time );
 
+    virtual bool exist(std::string key);
+
     virtual std::vector<std::string> getAllKey();
 
 };

@@ -260,6 +260,8 @@ std ::unique_ptr<In_Memory_Storage> key_value_storage{
     else if(parser_list[0] == "WAIT"){
       //std :: cout << "wait ?" << std::endl;
        response = ":"+std::to_string(replica_count) + "\r\n";
+
+       //  To do : Wait with multiple commands 
        std :: string ack = "*3\r\n$8\r\nREPLCONF\r\n$6\r\nGETACK\r\n$1\r\n*\r\n";
        for(auto it : replica_id1) {
          send(it,ack.c_str(),ack.length(),0);
@@ -269,6 +271,10 @@ std ::unique_ptr<In_Memory_Storage> key_value_storage{
 
      // send(client_fd, response.c_str(), response.length(), 0);
       //response = "*3\r\n$8\r\nREPLCONF\r\n$3\r\nACK\r\n$1\r\n0\r\n.";
+    }
+    else if(parser_list[0] == "TYPE"){
+      if(key_value_storage->exist(parser_list[1])) response = "+string\r\n" ;
+      else response = "+none\r\n";
     }
     else {
       for (int i = 1; i < parser_list.size(); i++) {

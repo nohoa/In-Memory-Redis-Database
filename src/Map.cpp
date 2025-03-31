@@ -47,3 +47,8 @@ std::vector<std::string> In_Memory_Storage :: getAllKey(){
     }
     return keys;
 }
+
+
+bool In_Memory_Storage :: exist(std::string key){
+    return storage.count(key);
+}
