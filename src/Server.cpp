@@ -24,6 +24,7 @@
 
 extern int send_request1 (std:: string& port,std:: string&replica_no,struct sockaddr_in& server_addr , int server_fd, int argc, char**argv);
 std::mutex mutex_guard;
+std::mutex mtx;
  std ::string to_lower(std ::string s) {
   std ::string ans;
   for (auto x : s) {
@@ -32,7 +33,6 @@ std::mutex mutex_guard;
   }
   return ans;
 }
-int replica_count = 0 ;
 std ::unique_ptr<In_Memory_Storage> key_value_storage{
   std::make_unique<In_Memory_Storage>()};
 
@@ -46,6 +46,7 @@ std ::unique_ptr<In_Memory_Storage> key_value_storage{
 }
  std::vector<std::string>  set_client1 ;
  std :: vector<int> replica_id1 ;
+ int replica_count = 0 ;
 
  void handle_connect(int client_fd, int argc, char **argv,
                     std::vector<std::vector<std::string> > additional_pair) {
@@ -106,9 +107,6 @@ std ::unique_ptr<In_Memory_Storage> key_value_storage{
 
     std :: vector<std::string > all_cmd  = parser->get_client_command(header);
 
-    for(auto it :  parser_list) {
-      std :: cout << it <<" ";
-    }
     std :: cout << std::endl;
 
     if (parser_list[0] == "PING") {
@@ -234,7 +232,18 @@ std ::unique_ptr<In_Memory_Storage> key_value_storage{
       }
     } 
     else if(parser_list[0] == "REPLCONF"){
-      response = "$2\r\nOK\r\n";
+      std :: cout << "refffff" << std::endl;
+      for(auto it : parser_list){
+        std :: cout << it <<" ";
+      }
+      std :: cout << std::endl;
+        if(parser_list[1] != "ACK")  response = "$2\r\nOK\r\n";
+        else {
+          
+          replica_count ++;
+          response = "*3\r\n$8\r\nREPLCONF\r\n$3\r\nACK\r\n$1\r\n0\r\n";
+        }
+        std :: cout << replica_count << std::endl;
     }
     else if(parser_list[0] == "PSYNC"){
       //std :: cout << "synccc" << std :: endl;
@@ -250,7 +259,14 @@ std ::unique_ptr<In_Memory_Storage> key_value_storage{
     }
     else if(parser_list[0] == "WAIT"){
       //std :: cout << "wait ?" << std::endl;
-       response = ":"+std::to_string(replica_count-1) + "\r\n";
+       response = ":"+std::to_string(replica_count) + "\r\n";
+       std :: string ack = "*3\r\n$8\r\nREPLCONF\r\n$6\r\nGETACK\r\n$1\r\n*\r\n";
+       for(auto it : replica_id1) {
+         send(it,ack.c_str(),ack.length(),0);
+
+       }
+
+
      // send(client_fd, response.c_str(), response.length(), 0);
       //response = "*3\r\n$8\r\nREPLCONF\r\n$3\r\nACK\r\n$1\r\n0\r\n.";
     }
@@ -412,7 +428,6 @@ int main(int argc, char **argv) {
                            (socklen_t *)&client_addr_len);
 
     std::cout << "Client connected\n";
-    replica_count ++;
 
     std::thread th(handle_connect, client_fd, argc, argv, v);
 
