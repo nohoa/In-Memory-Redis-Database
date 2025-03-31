@@ -24,8 +24,8 @@
 #include <vector>
 
 extern std::mutex mutex_guard;
+extern int replica_count ;
 extern std ::unique_ptr<In_Memory_Storage> key_value_storage;
-
    extern long get_current_time_ms() ;
 int send_request1(std::string &port, std::string &replica_no,
                   struct sockaddr_in &server_addr, int server_fd, int argc,
@@ -40,6 +40,7 @@ int send_request1(std::string &port, std::string &replica_no,
   std::reverse(port_no.begin(), port_no.end());
   // std :: cout << port_no << std::endl ;
   // std :: cout << port << std::endl;
+  std :: cout << "here" << std::endl;
   struct sockaddr_in back_up_addr;
   back_up_addr.sin_family = AF_INET;
   back_up_addr.sin_addr.s_addr = INADDR_ANY;
@@ -55,6 +56,7 @@ int send_request1(std::string &port, std::string &replica_no,
                         sizeof(back_up_addr))) < 0) {
     printf("\nConnection Failed \n");
   } else {
+    replica_count ++;
     std ::string SEND_PING = "*1\r\n$4\r\nPING\r\n";
     send(backup_fd, SEND_PING.c_str(), SEND_PING.length(), 0);
     char msg[1024] = {0};

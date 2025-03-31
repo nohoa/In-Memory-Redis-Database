@@ -32,6 +32,7 @@ std::mutex mutex_guard;
   }
   return ans;
 }
+int replica_count = 0 ;
 std ::unique_ptr<In_Memory_Storage> key_value_storage{
   std::make_unique<In_Memory_Storage>()};
 
@@ -105,6 +106,10 @@ std ::unique_ptr<In_Memory_Storage> key_value_storage{
 
     std :: vector<std::string > all_cmd  = parser->get_client_command(header);
 
+    for(auto it :  parser_list) {
+      std :: cout << it <<" ";
+    }
+    std :: cout << std::endl;
 
     if (parser_list[0] == "PING") {
       response = "+PONG\r\n";
@@ -244,7 +249,10 @@ std ::unique_ptr<In_Memory_Storage> key_value_storage{
 
     }
     else if(parser_list[0] == "WAIT"){
-      response = ":0\r\n";
+      //std :: cout << "wait ?" << std::endl;
+       response = ":"+std::to_string(replica_count-1) + "\r\n";
+     // send(client_fd, response.c_str(), response.length(), 0);
+      //response = "*3\r\n$8\r\nREPLCONF\r\n$3\r\nACK\r\n$1\r\n0\r\n.";
     }
     else {
       for (int i = 1; i < parser_list.size(); i++) {
@@ -335,8 +343,10 @@ int main(int argc, char **argv) {
     std :: string replica_no = argv[2];
 
     //std ::unique_ptr<Client_Request> client{std::make_unique<Client_Request>()};
-    std::thread th(send_request1,std::ref(port),std::ref(replica_no),std::ref(server_addr), server_fd,argc,argv);
-    th.detach();
+    std :: cout << "thread launched" << std::endl;
+
+    std::thread th1(send_request1,std::ref(port),std::ref(replica_no),std::ref(server_addr), server_fd,argc,argv);
+    th1.detach();
    //int status = client->send_request(port,replica_no,std::ref(server_addr), server_fd,argc,argv);
    //std :: cout << status << std::endl;
    //std :: cout << server_addr.sin_port << std ::endl;
@@ -402,11 +412,13 @@ int main(int argc, char **argv) {
                            (socklen_t *)&client_addr_len);
 
     std::cout << "Client connected\n";
+    replica_count ++;
 
     std::thread th(handle_connect, client_fd, argc, argv, v);
 
     th.detach();
   }
+  //std :: cout << "here" << std::endl;
   close(server_fd);
   return 0;
 }
