@@ -326,16 +326,18 @@ std ::unique_ptr<In_Memory_Storage> key_value_storage{
       if(all_cmd.size()  >= 3 && all_cmd.size()%2 != 0) {
         response = "$" +std::to_string(parser_list[2].length())+"\r\n"+parser_list[2] +"\r\n";
         mutex_guard.lock();
-        if(all_cmd[2].back() == '*'){
+        std :: cout << all_cmd[2] << std::endl;
+        if(all_cmd[2] == "*"){
+            std::string  curr_time = std::to_string(get_current_time_ms());
+
+            response = "$" +std::to_string(curr_time.length()+2)+ "\r\n"+curr_time+"-0\r\n";
+        }
+        else if(all_cmd[2].back() == '*'){
             std ::string  pref_key = all_cmd[2].substr(0,all_cmd[2].size()-1);
             std::vector<std::string> keys = key_value_storage->get_all_seq();
             std::string max_key  = pref_key;
             //std::cout << max_key <<std::endl;
             bool key_exist = false;
-            std::cout << "list key" << std::endl;
-            // for(auto it : keys) std:: cout << it <<" ";
-            // std::cout << std::endl;
-            std::cout << "end list key" << std::endl;
             for(auto it : keys){
                 //std:: cout << it << " ";
                 std::string curr_pref = it.substr(0,it.size()-1);
@@ -377,7 +379,7 @@ std ::unique_ptr<In_Memory_Storage> key_value_storage{
         //std :: cout << response << std::endl;
         mutex_guard.unlock();
         for(int i = 1 ;i < all_cmd.size() ;i += 2){
-          std::cout << all_cmd[i] <<" " << all_cmd[i+1] <<std::endl;
+          //std::cout << all_cmd[i] <<" " << all_cmd[i+1] <<std::endl;
           mutex_guard.lock();
           long curr_time = get_current_time_ms();
           key_value_storage->set(all_cmd[i],all_cmd[i+1],curr_time+999999999999);
@@ -391,8 +393,8 @@ std ::unique_ptr<In_Memory_Storage> key_value_storage{
       else {
         response = "+error\r\n";
       }
+      std :: cout << response << std::endl;
       std::vector<std::string> kk = key_value_storage->getAllKey();
-      for(auto it : kk) std::cout << it  << " ";
      if(err)response = "-ERR The ID specified in XADD is equal or smaller than the target stream top item\r\n";
      if(all_cmd[2] == "0-0") response = "-ERR The ID specified in XADD must be greater than 0-0\r\n";
     }
