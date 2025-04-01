@@ -54,7 +54,7 @@ std ::unique_ptr<In_Memory_Storage> key_value_storage{
  int replica_count = 0 ;
 
 
- void handle_connect(int client_fd, int argc, char **argv,
+ int handle_connect(int client_fd, int argc, char **argv,
                     std::vector<std::vector<std::string> > additional_pair) {
                      // std :: cout << "here" << std::endl;
         //std :: cout << mutex_guard.try_lock() << std::endl;
@@ -239,6 +239,7 @@ std ::unique_ptr<In_Memory_Storage> key_value_storage{
     } 
     else if(parser_list[0] == "REPLCONF"){
       //fff" << std::endl;
+      std :: cout << "rep-request" << std::endl;
         if(parser_list[1] != "ACK")  response = "$2\r\nOK\r\n";
         else {
           
@@ -265,8 +266,10 @@ std ::unique_ptr<In_Memory_Storage> key_value_storage{
        //  To do : Wait with multiple commands 
        std :: string ack = "*3\r\n$8\r\nREPLCONF\r\n$6\r\nGETACK\r\n$1\r\n*\r\n";
        for(auto it : replica_id1) {
+         char buf[1024] = {};
+         int len = recv(it,buf,sizeof(buf),0);
+         std :: cout << len << std::endl;
          send(it,ack.c_str(),ack.length(),0);
-
        }
 
 
@@ -283,8 +286,19 @@ std ::unique_ptr<In_Memory_Storage> key_value_storage{
       else response = "+none\r\n";
     }
     else if(parser_list[0] == "XADD"){
+      bool err = false ;
       if(all_cmd.size()  >= 3 && all_cmd.size()%2 != 0) {
         response = "$" +std::to_string(parser_list[2].length())+"\r\n"+parser_list[2] +"\r\n";
+        mutex_guard.lock();
+        if(key_value_storage->exist(all_cmd[1])){
+          std:: string prev = key_value_storage->get(all_cmd[1],0);
+          std :: cout << prev << " " << all_cmd[2] << std::endl;
+          if(prev.compare(all_cmd[2]) >= 0){
+              err = true ;
+              response = "-ERR The ID specified in XADD is equal or smaller than the target stream top item\r\n";
+          }
+        }
+        mutex_guard.unlock();
         for(int i = 1 ;i < all_cmd.size() ;i += 2){
           mutex_guard.lock();
           long curr_time = get_current_time_ms();
@@ -299,6 +313,8 @@ std ::unique_ptr<In_Memory_Storage> key_value_storage{
       else {
         response = "+error\r\n";
       }
+     if(err)response = "-ERR The ID specified in XADD is equal or smaller than the target stream top item\r\n";
+     if(all_cmd[2] == "0-0") response = "-ERR The ID specified in XADD must be greater than 0-0\r\n";
     }
     else {
       for (int i = 1; i < parser_list.size(); i++) {
@@ -329,6 +345,7 @@ std ::unique_ptr<In_Memory_Storage> key_value_storage{
 
 
   close(client_fd);
+  return 0 ;
 }
 
 int main(int argc, char **argv) {
