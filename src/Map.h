@@ -3,6 +3,8 @@
 
 #include<iostream>
 #include<map>
+#include <string>
+#include <utility>
 #include<vector>
 
 class In_Memory_Storage {
@@ -13,6 +15,8 @@ class In_Memory_Storage {
     std::map<std::string, std::string> type ;
 
     std::map<std::string,int> sequence_no ; 
+
+    std::map<std::pair<std::string,std::string>,std::pair<std::string,std::string> > stream;
 
     public : 
 
@@ -36,6 +40,12 @@ class In_Memory_Storage {
     virtual void set_seq(std::string sequence_no);
 
     virtual std::vector<std::string> get_all_seq();
+
+    virtual void set_stream(std::pair<std::string , std::string> key,std::pair<std::string , std::string> value );
+    virtual std::pair<std::string , std::string> get_stream(std::pair<std::string , std::string>key);
+
+    std::vector<std::vector<std::string> > get_range(std::string left , std::string right);
+
 };
 
 

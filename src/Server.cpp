@@ -20,6 +20,7 @@
 #include <thread>
 #include <type_traits>
 #include <unistd.h>
+#include <utility>
 #include <vector>
 #include<condition_variable>
 
@@ -397,6 +398,30 @@ std ::unique_ptr<In_Memory_Storage> key_value_storage{
       std::vector<std::string> kk = key_value_storage->getAllKey();
      if(err)response = "-ERR The ID specified in XADD is equal or smaller than the target stream top item\r\n";
      if(all_cmd[2] == "0-0") response = "-ERR The ID specified in XADD must be greater than 0-0\r\n";
+    }
+    else if(parser_list[0] == "xadd"){
+      std :: string id = all_cmd[2];
+      std::string value1 = all_cmd[3];
+      std::string value2 = all_cmd[4];
+      std::string key = all_cmd[1];
+        response = "$" + std::to_string(id.length()) +"\r\n" + id +"\r\n";
+        key_value_storage->set_stream(std::make_pair(key, id),std::make_pair(value1, value2)); 
+    }
+    else if(parser_list[0] == "xrange"){
+        response = "$1\r\n?\r\n";
+        std::vector<std::vector<std::string> > set_value = key_value_storage->get_range(all_cmd[2], all_cmd[3]);
+
+        response = "*" + std::to_string(set_value.size()) +"\r\n";
+        for(auto it : set_value){
+          response += ("*" + std::to_string(2) +"\r\n");
+          response += "$" + std::to_string(it[0].length()) +"\r\n" +it[0] +"\r\n";
+          response += ("*" + std::to_string(it.size()-1) +"\r\n");
+          for(int i = 1 ;i < it.size() ;i ++){
+            response += "$" + std::to_string(it[i].length()) +"\r\n" +it[i] +"\r\n";
+          }
+          
+        }
+        std::cout << response << std::endl;
     }
     else {
       for (int i = 1; i < parser_list.size(); i++) {
