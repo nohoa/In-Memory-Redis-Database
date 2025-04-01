@@ -409,7 +409,10 @@ std ::unique_ptr<In_Memory_Storage> key_value_storage{
     }
     else if(parser_list[0] == "xrange"){
         response = "$1\r\n?\r\n";
-        std::vector<std::vector<std::string> > set_value = key_value_storage->get_range(all_cmd[2], all_cmd[3]);
+        std :: string lower_bound = all_cmd[2];
+        std ::string upper_bound = all_cmd[3];
+        if(lower_bound == "-") lower_bound = "0-0";
+        std::vector<std::vector<std::string> > set_value = key_value_storage->get_range(lower_bound, upper_bound);
 
         response = "*" + std::to_string(set_value.size()) +"\r\n";
         for(auto it : set_value){
