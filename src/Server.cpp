@@ -412,6 +412,7 @@ std ::unique_ptr<In_Memory_Storage> key_value_storage{
         std :: string lower_bound = all_cmd[2];
         std ::string upper_bound = all_cmd[3];
         if(lower_bound == "-") lower_bound = "0-0";
+        if(upper_bound == "+") upper_bound = "999-999";
         std::vector<std::vector<std::string> > set_value = key_value_storage->get_range(lower_bound, upper_bound);
 
         response = "*" + std::to_string(set_value.size()) +"\r\n";
