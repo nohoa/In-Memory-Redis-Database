@@ -12,6 +12,8 @@ class In_Memory_Storage {
 
     std::map<std::string, std::string> type ;
 
+    std::map<std::string,int> sequence_no ; 
+
     public : 
 
 
@@ -31,6 +33,9 @@ class In_Memory_Storage {
 
     virtual std::string get_type(std:: string key);
 
+    virtual void set_seq(std::string sequence_no);
+
+    virtual std::vector<std::string> get_all_seq();
 };
 
 

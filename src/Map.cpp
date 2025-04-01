@@ -64,3 +64,15 @@ bool In_Memory_Storage :: exist_type(std:: string key){
 std::string In_Memory_Storage::get_type(std::string key ){
     return type[key] ;
 }
+
+void In_Memory_Storage :: set_seq(std::string seq_no){
+    sequence_no[seq_no] ++;
+}
+
+std::vector<std::string> In_Memory_Storage :: get_all_seq(){
+    std::vector<std::string > all ;
+    for(auto it : sequence_no){
+        all.push_back(it.first);
+    }
+    return all;
+}

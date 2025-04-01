@@ -326,16 +326,58 @@ std ::unique_ptr<In_Memory_Storage> key_value_storage{
       if(all_cmd.size()  >= 3 && all_cmd.size()%2 != 0) {
         response = "$" +std::to_string(parser_list[2].length())+"\r\n"+parser_list[2] +"\r\n";
         mutex_guard.lock();
-        if(key_value_storage->exist(all_cmd[1])){
+        if(all_cmd[2].back() == '*'){
+            std ::string  pref_key = all_cmd[2].substr(0,all_cmd[2].size()-1);
+            std::vector<std::string> keys = key_value_storage->get_all_seq();
+            std::string max_key  = pref_key;
+            //std::cout << max_key <<std::endl;
+            bool key_exist = false;
+            std::cout << "list key" << std::endl;
+            // for(auto it : keys) std:: cout << it <<" ";
+            // std::cout << std::endl;
+            std::cout << "end list key" << std::endl;
+            for(auto it : keys){
+                //std:: cout << it << " ";
+                std::string curr_pref = it.substr(0,it.size()-1);
+                if(curr_pref.compare(pref_key) == 0){
+                  key_exist = true;
+                    if(it.compare(max_key) > 0){
+                      max_key = it;
+                    }
+                }
+            }
+            std :: string key_response;
+            if(key_exist) {
+              std :: cout << "does exist ?" << std::endl;
+              int index_key ;
+              for(int i = 0 ;i < max_key.length() ;i ++){
+                  if(max_key[i] =='-') index_key = i ;
+              }
+              std::string current_end = max_key.substr(index_key,max_key.length()-index_key);
+              key_response = max_key.substr(0,index_key+1) + std::to_string(std::stoi(current_end)+1);
+               
+            }
+            else {
+              if(max_key[0] == '0') key_response = max_key +'1';
+              else key_response = max_key +'0';
+            }
+            std :: cout << "Key response is :" << key_response << std::endl;
+            all_cmd[2] = key_response;
+            response = "$" +std::to_string(key_response.length())+"\r\n"+key_response +"\r\n";
+            key_value_storage->set_seq(all_cmd[2]);
+            //parser_list[0] =key_response;
+        }
+        else if(key_value_storage->exist(all_cmd[1])){
           std:: string prev = key_value_storage->get(all_cmd[1],0);
-          std :: cout << prev << " " << all_cmd[2] << std::endl;
           if(prev.compare(all_cmd[2]) >= 0){
               err = true ;
               response = "-ERR The ID specified in XADD is equal or smaller than the target stream top item\r\n";
           }
         }
+        //std :: cout << response << std::endl;
         mutex_guard.unlock();
         for(int i = 1 ;i < all_cmd.size() ;i += 2){
+          std::cout << all_cmd[i] <<" " << all_cmd[i+1] <<std::endl;
           mutex_guard.lock();
           long curr_time = get_current_time_ms();
           key_value_storage->set(all_cmd[i],all_cmd[i+1],curr_time+999999999999);
@@ -349,6 +391,8 @@ std ::unique_ptr<In_Memory_Storage> key_value_storage{
       else {
         response = "+error\r\n";
       }
+      std::vector<std::string> kk = key_value_storage->getAllKey();
+      for(auto it : kk) std::cout << it  << " ";
      if(err)response = "-ERR The ID specified in XADD is equal or smaller than the target stream top item\r\n";
      if(all_cmd[2] == "0-0") response = "-ERR The ID specified in XADD must be greater than 0-0\r\n";
     }
