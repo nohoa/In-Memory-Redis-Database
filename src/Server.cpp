@@ -408,7 +408,6 @@ std ::unique_ptr<In_Memory_Storage> key_value_storage{
         key_value_storage->set_stream(std::make_pair(key, id),std::make_pair(value1, value2)); 
     }
     else if(parser_list[0] == "xrange"){
-        response = "$1\r\n?\r\n";
         std :: string lower_bound = all_cmd[2];
         std ::string upper_bound = all_cmd[3];
         if(lower_bound == "-") lower_bound = "0-0";
@@ -424,6 +423,24 @@ std ::unique_ptr<In_Memory_Storage> key_value_storage{
             response += "$" + std::to_string(it[i].length()) +"\r\n" +it[i] +"\r\n";
           }
           
+        }
+        //std::cout << response << std::endl;
+    }
+    else if(parser_list[0] == "xread"){
+      std :: string lower_bound = all_cmd[3];
+        std ::string upper_bound = "999-999";
+        std::vector<std::vector<std::string> > set_value = key_value_storage->get_range(lower_bound, upper_bound);
+        response = "*" + std::to_string(1) +"\r\n";
+        response += ("*" + std::to_string(2) +"\r\n");
+        response += ("$"+std::to_string(all_cmd[2].length())+"\r\n" +all_cmd[2] +"\r\n");
+        response += ("*" + std::to_string(set_value.size()) +"\r\n");
+        for(auto it : set_value){
+          response += ("*" + std::to_string(2) +"\r\n");
+          response += "$" + std::to_string(it[0].length()) +"\r\n" +it[0] +"\r\n";
+          response += ("*" + std::to_string(it.size()-1) +"\r\n");
+          for(int i = 1 ;i < it.size() ;i ++){
+            response += "$" + std::to_string(it[i].length()) +"\r\n" +it[i] +"\r\n";
+          }
         }
         std::cout << response << std::endl;
     }
