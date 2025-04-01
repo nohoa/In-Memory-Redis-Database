@@ -26,9 +26,15 @@
 
 std::condition_variable wait_cond ;
 int  m_wait_count = 0 ;
+std::vector<std::string>  set_client1 ;
+std :: vector<int> replica_id1 ;
+std::mutex wait_mutex ;
+
+
 
 extern int send_request1 (std:: string& port,std:: string&replica_no,struct sockaddr_in& server_addr , int server_fd, int argc, char**argv);
 std::mutex mutex_guard;
+bool inside = false;
 std::mutex mtx;
  std ::string to_lower(std ::string s) {
   std ::string ans;
@@ -49,9 +55,30 @@ std ::unique_ptr<In_Memory_Storage> key_value_storage{
   long current_time_in_ms = value.count();
   return current_time_in_ms;
 }
- std::vector<std::string>  set_client1 ;
- std :: vector<int> replica_id1 ;
  int replica_count = 0 ;
+
+ void send_ack(int client_fd, std::string count , std::string wait_time ){
+  //response = ":"+std::to_string(1) + "\r\n";
+  std::unique_lock<std::mutex> lock(wait_mutex);
+  m_wait_count = std::stoi(count);
+  std :: string ack = "*3\r\n$8\r\nREPLCONF\r\n$6\r\nGETACK\r\n$1\r\n*\r\n";
+       for(auto it : replica_id1) {
+         send(it,ack.c_str(),ack.length(),0);
+       }
+       auto curr_time = std::chrono::system_clock::now() + std::chrono::milliseconds(std::stoi(wait_time));
+
+  
+       wait_cond.wait_until(lock, curr_time, []() {
+        return m_wait_count == 0;
+      });
+       if(m_wait_count != 0) {
+        std::cout << "Wait timeout\n";
+      }
+      std::string curr = std::to_string(std::stoi(count) - m_wait_count) ;
+      std::string  response = ":"+curr + "\r\n";
+      send(client_fd,response.c_str(),response.length(),0);
+
+}
 
 
  int handle_connect(int client_fd, int argc, char **argv,
@@ -120,8 +147,9 @@ std ::unique_ptr<In_Memory_Storage> key_value_storage{
       //std :: cout << "go here " << std::endl;
     } else if (parser_list[0] == "SET") {
 
-     // std :: cout << "here ? " << std :: endl;
+     // std :: cout << "here ? " << std :: endl
      mutex_guard.lock();
+     inside = true;
       long current_time_in_ms = get_current_time_ms();
 
       response = "+OK\r\n";
@@ -239,11 +267,17 @@ std ::unique_ptr<In_Memory_Storage> key_value_storage{
     } 
     else if(parser_list[0] == "REPLCONF"){
       //fff" << std::endl;
-      std :: cout << "rep-request" << std::endl;
-        if(parser_list[1] != "ACK")  response = "$2\r\nOK\r\n";
+      //quest" << std::endl;
+        if(parser_list[1] != "ACK")  {
+          response = "$2\r\nOK\r\n";
+        }
         else {
-          
-          response = "*3\r\n$8\r\nREPLCONF\r\n$3\r\nACK\r\n$1\r\n0\r\n";
+            inside = true;
+            std::lock_guard<std::mutex> lock(wait_mutex); 
+            m_wait_count -- ;
+            if(m_wait_count == 0){
+              wait_cond.notify_all();
+            }
         }
         std :: cout << replica_count << std::endl;
     }
@@ -261,17 +295,19 @@ std ::unique_ptr<In_Memory_Storage> key_value_storage{
     }
     else if(parser_list[0] == "WAIT"){
       //std :: cout << "wait ?" << std::endl;
-       response = ":"+std::to_string(1) + "\r\n";
 
        //  To do : Wait with multiple commands 
-       std :: string ack = "*3\r\n$8\r\nREPLCONF\r\n$6\r\nGETACK\r\n$1\r\n*\r\n";
-       for(auto it : replica_id1) {
-         char buf[1024] = {};
-         int len = recv(it,buf,sizeof(buf),0);
-         std :: cout << len << std::endl;
-         send(it,ack.c_str(),ack.length(),0);
+       //std::cout << inside << std::endl;
+       if(inside == false){
+            response = ":"+std::to_string(replica_id1.size()) + "\r\n";
        }
-
+       else {
+       std::string wait_time = all_cmd[2];
+       std::string count = all_cmd[1];
+       std :: cout << count << std::endl;
+       std::thread th2(send_ack,client_fd,count,wait_time); 
+       th2.detach();
+       }
 
      // send(client_fd, response.c_str(), response.length(), 0);
       //response = "*3\r\n$8\r\nREPLCONF\r\n$3\r\nACK\r\n$1\r\n0\r\n.";
