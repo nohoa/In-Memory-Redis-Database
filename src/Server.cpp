@@ -21,6 +21,11 @@
 #include <type_traits>
 #include <unistd.h>
 #include <vector>
+#include<condition_variable>
+
+
+std::condition_variable wait_cond ;
+int  m_wait_count = 0 ;
 
 extern int send_request1 (std:: string& port,std:: string&replica_no,struct sockaddr_in& server_addr , int server_fd, int argc, char**argv);
 std::mutex mutex_guard;
@@ -47,6 +52,7 @@ std ::unique_ptr<In_Memory_Storage> key_value_storage{
  std::vector<std::string>  set_client1 ;
  std :: vector<int> replica_id1 ;
  int replica_count = 0 ;
+
 
  void handle_connect(int client_fd, int argc, char **argv,
                     std::vector<std::vector<std::string> > additional_pair) {
@@ -129,6 +135,7 @@ std ::unique_ptr<In_Memory_Storage> key_value_storage{
         
       //int status = send(client_fd, response.c_str(), response.length(), 0);
       //response = "$";
+      mutex_guard.unlock();
       std :: string set_response ="*" ;
       set_response += std::to_string(all_cmd.size());
       set_response += "\r\n";
@@ -143,7 +150,6 @@ std ::unique_ptr<In_Memory_Storage> key_value_storage{
        // std :: cout << replica_id[i] << std :: endl;
         write(replica_id1[i],set_response.c_str(),set_response.size());
       }
-      mutex_guard.unlock();
       //write(client_fd,set_response.c_str(),set_response.size());
       //std :: cout << "here ? " << std :: endl;
       // response += std::to_string(all_response.length());
@@ -232,15 +238,10 @@ std ::unique_ptr<In_Memory_Storage> key_value_storage{
       }
     } 
     else if(parser_list[0] == "REPLCONF"){
-      std :: cout << "refffff" << std::endl;
-      for(auto it : parser_list){
-        std :: cout << it <<" ";
-      }
-      std :: cout << std::endl;
+      //fff" << std::endl;
         if(parser_list[1] != "ACK")  response = "$2\r\nOK\r\n";
         else {
           
-          replica_count ++;
           response = "*3\r\n$8\r\nREPLCONF\r\n$3\r\nACK\r\n$1\r\n0\r\n";
         }
         std :: cout << replica_count << std::endl;
@@ -259,7 +260,7 @@ std ::unique_ptr<In_Memory_Storage> key_value_storage{
     }
     else if(parser_list[0] == "WAIT"){
       //std :: cout << "wait ?" << std::endl;
-       response = ":"+std::to_string(replica_count) + "\r\n";
+       response = ":"+std::to_string(1) + "\r\n";
 
        //  To do : Wait with multiple commands 
        std :: string ack = "*3\r\n$8\r\nREPLCONF\r\n$6\r\nGETACK\r\n$1\r\n*\r\n";
@@ -273,8 +274,31 @@ std ::unique_ptr<In_Memory_Storage> key_value_storage{
       //response = "*3\r\n$8\r\nREPLCONF\r\n$3\r\nACK\r\n$1\r\n0\r\n.";
     }
     else if(parser_list[0] == "TYPE"){
-      if(key_value_storage->exist(parser_list[1])) response = "+string\r\n" ;
+      if(key_value_storage->exist(parser_list[1])) {
+         if(key_value_storage->exist_type(parser_list[1])) response = "+"+key_value_storage->get_type(parser_list[1])+"\r\n";
+         else {
+          response = "+string\r\n";
+         }
+      }
       else response = "+none\r\n";
+    }
+    else if(parser_list[0] == "XADD"){
+      if(all_cmd.size()  >= 3 && all_cmd.size()%2 != 0) {
+        response = "$" +std::to_string(parser_list[2].length())+"\r\n"+parser_list[2] +"\r\n";
+        for(int i = 1 ;i < all_cmd.size() ;i += 2){
+          mutex_guard.lock();
+          long curr_time = get_current_time_ms();
+          key_value_storage->set(all_cmd[i],all_cmd[i+1],curr_time+999999999999);
+          key_value_storage->set_type(all_cmd[i], "stream");
+          mutex_guard.unlock();
+        }
+      }
+      else if(all_cmd.size() == 1) {
+         response = "+stream\r\n";
+      }
+      else {
+        response = "+error\r\n";
+      }
     }
     else {
       for (int i = 1; i < parser_list.size(); i++) {

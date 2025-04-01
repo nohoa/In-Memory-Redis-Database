@@ -52,3 +52,15 @@ std::vector<std::string> In_Memory_Storage :: getAllKey(){
 bool In_Memory_Storage :: exist(std::string key){
     return storage.count(key);
 }
+
+bool In_Memory_Storage :: exist_type(std:: string key){
+    return type.count(key);
+}
+
+ void In_Memory_Storage::set_type(std::string key, std::string key_type ){
+    type[key] = key_type;
+}
+
+std::string In_Memory_Storage::get_type(std::string key ){
+    return type[key] ;
+}

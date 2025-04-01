@@ -10,6 +10,8 @@ class In_Memory_Storage {
 
     std :: map<std::string , std :: pair<std :: string , long long > > storage ;
 
+    std::map<std::string, std::string> type ;
+
     public : 
 
 
@@ -21,7 +23,13 @@ class In_Memory_Storage {
 
     virtual bool exist(std::string key);
 
+    virtual bool exist_type(std::string key);
+
     virtual std::vector<std::string> getAllKey();
+
+    virtual void set_type(std:: string key,std::string type);
+
+    virtual std::string get_type(std:: string key);
 
 };
 
