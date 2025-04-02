@@ -101,3 +101,18 @@ std::vector<std::vector<std::string> > In_Memory_Storage :: get_range(std::strin
     }
     return v;
 }
+
+std::vector<std::vector<std::string> > In_Memory_Storage :: get_range_match_key(std::string key, std::string left, std::string right){
+    std::vector<std::vector<std::string> > v;
+    for(auto it : stream ){
+        std::string range_key = it.first.second;
+        if(range_key.compare(left) >= 0 && right.compare(range_key) >= 0 && it.first.first.compare(key) == 0){
+            std::vector<std::string> internal ;
+            internal.push_back(it.first.second);
+            internal.push_back(it.second.first);
+            internal.push_back(it.second.second);
+            v.push_back(internal);
+        }
+    }
+    return v;
+}

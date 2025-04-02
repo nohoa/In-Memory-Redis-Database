@@ -23,6 +23,7 @@
 #include <utility>
 #include <vector>
 #include<condition_variable>
+#include <chrono>
 
 
 std::condition_variable wait_cond ;
@@ -30,6 +31,8 @@ int  m_wait_count = 0 ;
 std::vector<std::string>  set_client1 ;
 std :: vector<int> replica_id1 ;
 std::mutex wait_mutex ;
+
+long prev_time = -1;
 
 
 
@@ -187,7 +190,6 @@ std ::unique_ptr<In_Memory_Storage> key_value_storage{
       // response += "\r\n";
     } else if (parser_list[0] == "GET") {
       //std :: cout << "??" << std :: endl;
-      
       mutex_guard.lock();
       long current_time_in_ms = get_current_time_ms();
 
@@ -400,12 +402,17 @@ std ::unique_ptr<In_Memory_Storage> key_value_storage{
      if(all_cmd[2] == "0-0") response = "-ERR The ID specified in XADD must be greater than 0-0\r\n";
     }
     else if(parser_list[0] == "xadd"){
+      std :: cout <<  "add" << std::endl;
+      for(auto it : all_cmd) std:: cout << it <<" " ;
+      std::cout << std::endl;
       std :: string id = all_cmd[2];
       std::string value1 = all_cmd[3];
       std::string value2 = all_cmd[4];
       std::string key = all_cmd[1];
         response = "$" + std::to_string(id.length()) +"\r\n" + id +"\r\n";
         key_value_storage->set_stream(std::make_pair(key, id),std::make_pair(value1, value2)); 
+
+       // std:: cout << response << std::endl;
     }
     else if(parser_list[0] == "xrange"){
         std :: string lower_bound = all_cmd[2];
@@ -427,12 +434,60 @@ std ::unique_ptr<In_Memory_Storage> key_value_storage{
         //std::cout << response << std::endl;
     }
     else if(parser_list[0] == "xread"){
-      std :: string lower_bound = all_cmd[3];
+      std:: cout << "xread" << std::endl;
+      if(all_cmd[1] == "block"){
+        //std :: cout << "block ? " << std::endl;
+
+        std :: string lower_bound = all_cmd[5];
         std ::string upper_bound = "999-999";
-        std::vector<std::vector<std::string> > set_value = key_value_storage->get_range(lower_bound, upper_bound);
-        response = "*" + std::to_string(1) +"\r\n";
+        std::vector<std::vector<std::string> > set_value = key_value_storage->get_range_match_key(all_cmd[4],lower_bound, upper_bound);
+        if(prev_time == -1) {
+          response = ("*1\r\n*2\r\n$"+std::to_string(all_cmd[4].size())+"\r\n"+all_cmd[4]+"\r\n*1\r\n*2\r\n$3\r\n0-2\r\n*2\r\n$11\r\ntemperature\r\n$2\r\n"+set_value[0][2]+"\r\n");
+          prev_time = get_current_time_ms()+std::stol(all_cmd[2]);
+          std::this_thread::sleep_for(
+            std::chrono::milliseconds(std::stol(all_cmd[2])));
+        }
+        else if(get_current_time_ms() > prev_time)
+        {
+          response = "$-1\r\n";
+        }
+        // long time_now = get_current_time_ms();
+        // mutex_guard.lock();
+        //   if((prev_time == -1 )||(time_now <= prev_time) ){
+        //     prev_time = get_current_time_ms() +std::stol(all_cmd[2]);
+        //     //std::this_thread::sleep_for (std::chrono::milliseconds(std::stol(all_cmd[2])));
+        //     std :: string lower_bound = all_cmd[5];
+        //     std ::string upper_bound = "999-999";
+        //     std::vector<std::vector<std::string> > set_value = key_value_storage->get_range(lower_bound, upper_bound);
+    
+        //     response = "*" + std::to_string(set_value.size()) +"\r\n";
+        //     for(auto it : set_value){
+        //       response += ("*" + std::to_string(2) +"\r\n");
+        //       response += "$" + std::to_string(it[0].length()) +"\r\n" +it[0] +"\r\n";
+        //       response += ("*" + std::to_string(it.size()-1) +"\r\n");
+        //       for(int i = 1 ;i < it.size() ;i ++){
+        //         response += "$" + std::to_string(it[i].length()) +"\r\n" +it[i] +"\r\n";
+        //       }
+              
+        //     }
+        //   }
+        //   else {
+        //     //sleep(2);
+        //     std :: cout << "go here " << std::endl;
+        //     response = "$-1\r\n";
+        //   }
+        //   mutex_guard.unlock();
+
+      }
+      else {
+      int len = (all_cmd.size() - 2) >> 1;
+      response = "*" + std::to_string(len) +"\r\n";
+      for(int i = 2 ;i < 2 + len ;i ++){
+      std :: string lower_bound = all_cmd[i+len];
+        std ::string upper_bound = "999-999";
+        std::vector<std::vector<std::string> > set_value = key_value_storage->get_range_match_key(all_cmd[i],lower_bound, upper_bound);
         response += ("*" + std::to_string(2) +"\r\n");
-        response += ("$"+std::to_string(all_cmd[2].length())+"\r\n" +all_cmd[2] +"\r\n");
+        response += ("$"+std::to_string(all_cmd[i].length())+"\r\n" +all_cmd[i] +"\r\n");
         response += ("*" + std::to_string(set_value.size()) +"\r\n");
         for(auto it : set_value){
           response += ("*" + std::to_string(2) +"\r\n");
@@ -442,7 +497,9 @@ std ::unique_ptr<In_Memory_Storage> key_value_storage{
             response += "$" + std::to_string(it[i].length()) +"\r\n" +it[i] +"\r\n";
           }
         }
+      }
         std::cout << response << std::endl;
+    }
     }
     else {
       for (int i = 1; i < parser_list.size(); i++) {
@@ -452,6 +509,14 @@ std ::unique_ptr<In_Memory_Storage> key_value_storage{
         response += parser_list[i] + "\r\n";
       }
 
+    }
+    //std :: cout << response << std::endl;
+    for(int i = 0 ; i < response.size() ;i ++) {
+        char it = response[i];
+        //std::cout << i <<" " << it 
+        if(it == '\r') std::cout << "r" ;
+        else if(it == '\n') std::cout << "n" ;
+        else std::cout << it ;
     }
    if(response.size() > 0) send(client_fd, response.c_str(), response.length(), 0);
     //std :: cout << "finish" << std :: endl;

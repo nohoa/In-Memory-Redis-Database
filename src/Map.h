@@ -46,6 +46,8 @@ class In_Memory_Storage {
 
     std::vector<std::vector<std::string> > get_range(std::string left , std::string right);
 
+    std::vector<std::vector<std::string> > get_range_match_key(std::string key, std::string left , std::string right);
+
 };
 
 
