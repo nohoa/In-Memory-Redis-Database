@@ -32,6 +32,7 @@ std::vector<std::string>  set_client1 ;
 std :: vector<int> replica_id1 ;
 std::mutex wait_mutex ;
 
+std::map<std::string,int> appear ;
 long prev_time = -1;
 
 
@@ -39,6 +40,7 @@ long prev_time = -1;
 extern int send_request1 (std:: string& port,std:: string&replica_no,struct sockaddr_in& server_addr , int server_fd, int argc, char**argv);
 std::mutex mutex_guard;
 bool inside = false;
+
 std::mutex mtx;
  std ::string to_lower(std ::string s) {
   std ::string ans;
@@ -84,7 +86,7 @@ std ::unique_ptr<In_Memory_Storage> key_value_storage{
 
 }
 
-
+bool queue = false ;
  int handle_connect(int client_fd, int argc, char **argv,
                     std::vector<std::vector<std::string> > additional_pair) {
                      // std :: cout << "here" << std::endl;
@@ -517,7 +519,22 @@ std ::unique_ptr<In_Memory_Storage> key_value_storage{
         }
     }
     else if(parser_list[0] == "MULTI"){
+      queue = true ;
       response = "+OK\r\n";
+    }
+    else if(parser_list[0] == "EXEC"){
+      if(queue == true){
+        if(!appear.count(parser_list[0])){
+          response = "*0\r\n";
+          appear[parser_list[0]] ++;
+        }
+        else {
+          response = "-ERR EXEC without MULTI\r\n";
+        }
+      }
+      else {
+        response =  "-ERR EXEC without MULTI\r\n";
+      }
     }
     else {
       for (int i = 1; i < parser_list.size(); i++) {
