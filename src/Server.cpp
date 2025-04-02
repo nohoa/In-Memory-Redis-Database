@@ -498,6 +498,27 @@ std ::unique_ptr<In_Memory_Storage> key_value_storage{
       }
     }
     }
+    else if(parser_list[0] == "INCR"){
+        std::string key = parser_list[1];
+        std::string value = key_value_storage->get(key,0);
+        if(value == "") value = "0";
+        bool digit = true;
+        for(auto it : value){
+            if(it >= '0' && it <= '9') continue ;
+            else digit = false ;
+        }
+        if(digit == true){
+        int current_value = std::stoi(value) +1 ;
+        response = ":" + std::to_string(current_value)+"\r\n";
+        key_value_storage->set(key,std::to_string(current_value),get_current_time_ms()+9999999999);
+        }
+        else {
+           response = "-ERR value is not an integer or out of range\r\n";
+        }
+    }
+    else if(parser_list[0] == "MULTI"){
+      response = "+OK\r\n";
+    }
     else {
       for (int i = 1; i < parser_list.size(); i++) {
         response += '$';
