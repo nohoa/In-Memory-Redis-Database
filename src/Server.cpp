@@ -329,7 +329,7 @@ std ::unique_ptr<In_Memory_Storage> key_value_storage{
       if(all_cmd.size()  >= 3 && all_cmd.size()%2 != 0) {
         response = "$" +std::to_string(parser_list[2].length())+"\r\n"+parser_list[2] +"\r\n";
         mutex_guard.lock();
-        std :: cout << all_cmd[2] << std::endl;
+        //std :: cout << all_cmd[2] << std::endl;
         if(all_cmd[2] == "*"){
             std::string  curr_time = std::to_string(get_current_time_ms());
 
@@ -403,8 +403,6 @@ std ::unique_ptr<In_Memory_Storage> key_value_storage{
     }
     else if(parser_list[0] == "xadd"){
       std :: cout <<  "add" << std::endl;
-      for(auto it : all_cmd) std:: cout << it <<" " ;
-      std::cout << std::endl;
       std :: string id = all_cmd[2];
       std::string value1 = all_cmd[3];
       std::string value2 = all_cmd[4];
@@ -434,7 +432,6 @@ std ::unique_ptr<In_Memory_Storage> key_value_storage{
         //std::cout << response << std::endl;
     }
     else if(parser_list[0] == "xread"){
-      std:: cout << "xread" << std::endl;
       if(all_cmd[1] == "block"){
         //std :: cout << "block ? " << std::endl;
 
@@ -442,12 +439,13 @@ std ::unique_ptr<In_Memory_Storage> key_value_storage{
         std ::string upper_bound = "999-999";
         std::vector<std::vector<std::string> > set_value = key_value_storage->get_range_match_key(all_cmd[4],lower_bound, upper_bound);
         if(prev_time == -1) {
-          response = ("*1\r\n*2\r\n$"+std::to_string(all_cmd[4].size())+"\r\n"+all_cmd[4]+"\r\n*1\r\n*2\r\n$3\r\n0-2\r\n*2\r\n$11\r\ntemperature\r\n$2\r\n"+set_value[0][2]+"\r\n");
+          response = ("*1\r\n*2\r\n$"+std::to_string(all_cmd[4].size())+"\r\n"+all_cmd[4]+"\r\n*1\r\n*2\r\n$3\r\n0-2\r\n*2\r\n$11\r\ntemperature\r\n$"+std::to_string(set_value[0][2].size())+"\r\n"+set_value[0][2]+"\r\n");
           prev_time = get_current_time_ms()+std::stol(all_cmd[2]);
           std::this_thread::sleep_for(
             std::chrono::milliseconds(std::stol(all_cmd[2])));
+            //std::cout << response <<std::endl;
         }
-        else if(get_current_time_ms() > prev_time)
+        else 
         {
           response = "$-1\r\n";
         }
@@ -498,7 +496,6 @@ std ::unique_ptr<In_Memory_Storage> key_value_storage{
           }
         }
       }
-        std::cout << response << std::endl;
     }
     }
     else {
@@ -511,13 +508,6 @@ std ::unique_ptr<In_Memory_Storage> key_value_storage{
 
     }
     //std :: cout << response << std::endl;
-    for(int i = 0 ; i < response.size() ;i ++) {
-        char it = response[i];
-        //std::cout << i <<" " << it 
-        if(it == '\r') std::cout << "r" ;
-        else if(it == '\n') std::cout << "n" ;
-        else std::cout << it ;
-    }
    if(response.size() > 0) send(client_fd, response.c_str(), response.length(), 0);
     //std :: cout << "finish" << std :: endl;
   }
