@@ -154,6 +154,10 @@ bool queue = false ;
     } else if (parser_list[0] == "SET") {
 
      // std :: cout << "here ? " << std :: endl
+     if(queue == true){
+      response = "+QUEUED\r\n";
+     }
+     else {
      mutex_guard.lock();
      inside = true;
       long current_time_in_ms = get_current_time_ms();
@@ -190,6 +194,7 @@ bool queue = false ;
       // response += "\r\n" ;
       // response += all_response;
       // response += "\r\n";
+      }
     } else if (parser_list[0] == "GET") {
       //std :: cout << "??" << std :: endl;
       mutex_guard.lock();
@@ -501,6 +506,10 @@ bool queue = false ;
     }
     }
     else if(parser_list[0] == "INCR"){
+        if(queue == true){
+          response = "+QUEUED\r\n";
+        }
+        else {
         std::string key = parser_list[1];
         std::string value = key_value_storage->get(key,0);
         if(value == "") value = "0";
@@ -517,6 +526,7 @@ bool queue = false ;
         else {
            response = "-ERR value is not an integer or out of range\r\n";
         }
+      }
     }
     else if(parser_list[0] == "MULTI"){
       queue = true ;
