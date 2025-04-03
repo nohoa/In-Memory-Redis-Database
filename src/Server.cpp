@@ -24,6 +24,7 @@
 #include <vector>
 #include<condition_variable>
 #include <chrono>
+#include<queue>
 
 
 std::condition_variable wait_cond ;
@@ -36,7 +37,7 @@ std::map<std::string,int> appear ;
 long prev_time = -1;
 
 
-
+std::queue<std::vector<std::string > > q_cmd ;
 extern int send_request1 (std:: string& port,std:: string&replica_no,struct sockaddr_in& server_addr , int server_fd, int argc, char**argv);
 std::mutex mutex_guard;
 bool inside = false;
@@ -86,13 +87,91 @@ std ::unique_ptr<In_Memory_Storage> key_value_storage{
 
 }
 
-bool queue = false ;
+
+std::string  perform_set(std::string response , std::vector<std::string> parser_list,std::vector<std::string> all_cmd){
+  mutex_guard.lock();
+     inside = true;
+      long current_time_in_ms = get_current_time_ms();
+
+      response = "+OK\r\n";
+      //std :: cout << parser_list[1] <<" " << parser_list[2] << std :: endl;
+      if (parser_list.size() > 3)
+        key_value_storage->set(parser_list[1], parser_list[2],
+                               current_time_in_ms + stoi(parser_list.back()));
+      else
+        key_value_storage->set(parser_list[1], parser_list[2],
+                               current_time_in_ms + 999999999999);
+        
+      //int status = send(client_fd, response.c_str(), response.length(), 0);
+      //response = "$";
+      mutex_guard.unlock();
+      std :: string set_response ="*" ;
+      set_response += std::to_string(all_cmd.size());
+      set_response += "\r\n";
+      for(auto it : all_cmd) {
+        set_response += "$";
+        set_response += std::to_string(it.size());
+        set_response += "\r\n";
+        set_response += it;
+        set_response += "\r\n";
+      }         
+      for(int i = 0 ;i < replica_id1.size() ;i ++){
+       // std :: cout << replica_id[i] << std :: endl;
+        write(replica_id1[i],set_response.c_str(),set_response.size());
+      }
+      return response;
+}
+
+std::string perform_get(std::string response , std::vector<std::string> parser_list){
+     std:: cout << "perform get" << std::endl;
+     //std :: cout << parser_list.size() << std::endl;
+     mutex_guard.lock();
+     long current_time_in_ms = get_current_time_ms();
+     response = key_value_storage->get(parser_list[1], current_time_in_ms);
+    // std :: cout << "lol" << std :: endl;
+     //std :: cout << "response is " << response << std :: endl;
+     mutex_guard.unlock();
+     if (response == "") {
+       response = "$-1\r\n";
+     } else {
+       response =
+           "$" + std::to_string(response.size()) + "\r\n" + response + "\r\n";
+     }
+    return response ;
+}
+
+std::string perform_incr(std:: string response , std::vector<std::string> parser_list){
+      //std:: cout << "perform INCR command in here" << std::endl;
+      std::string key = parser_list[1];
+        std::string value = key_value_storage->get(key,0);
+        if(value == "") value = "0";
+        bool digit = true;
+        for(auto it : value){
+            if(it >= '0' && it <= '9') continue ;
+            else digit = false ;
+        }
+        if(digit == true){
+        int current_value = std::stoi(value) +1 ;
+        response = ":" + std::to_string(current_value)+"\r\n";
+        mutex_guard.lock();
+        key_value_storage->set(key,std::to_string(current_value),get_current_time_ms()+9999999999);
+        mutex_guard.unlock();
+        }
+        
+        else {
+           response = "-ERR value is not an integer or out of range\r\n";
+        }
+        return response ;
+}
+
  int handle_connect(int client_fd, int argc, char **argv,
                     std::vector<std::vector<std::string> > additional_pair) {
                      // std :: cout << "here" << std::endl;
         //std :: cout << mutex_guard.try_lock() << std::endl;
       //while(mutex_guard.try_lock() == false ) ;
+
       //std :: cout << "mutex finished" << std :: endl;
+      bool queue = false ;
   long current_time = get_current_time_ms();
   std :: string master_id = "8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb";
   for (auto it : additional_pair) {
@@ -156,38 +235,16 @@ bool queue = false ;
      // std :: cout << "here ? " << std :: endl
      if(queue == true){
       response = "+QUEUED\r\n";
+      std::vector<std::string> list_cmd ;
+      // list_cmd.push_back(parser_list[0]);
+      // list_cmd.push_back(parser_list[1]);
+      // list_cmd.push_back(parser_list[2]);
+      // list_cmd.push_back("999999999999999");
+      q_cmd.push(parser_list);
+      q_cmd.push(all_cmd);
      }
      else {
-     mutex_guard.lock();
-     inside = true;
-      long current_time_in_ms = get_current_time_ms();
-
-      response = "+OK\r\n";
-      //std :: cout << parser_list[1] <<" " << parser_list[2] << std :: endl;
-      if (parser_list.size() > 3)
-        key_value_storage->set(parser_list[1], parser_list[2],
-                               current_time_in_ms + stoi(parser_list.back()));
-      else
-        key_value_storage->set(parser_list[1], parser_list[2],
-                               current_time_in_ms + 999999999999);
-        
-      //int status = send(client_fd, response.c_str(), response.length(), 0);
-      //response = "$";
-      mutex_guard.unlock();
-      std :: string set_response ="*" ;
-      set_response += std::to_string(all_cmd.size());
-      set_response += "\r\n";
-      for(auto it : all_cmd) {
-        set_response += "$";
-        set_response += std::to_string(it.size());
-        set_response += "\r\n";
-        set_response += it;
-        set_response += "\r\n";
-      }         
-      for(int i = 0 ;i < replica_id1.size() ;i ++){
-       // std :: cout << replica_id[i] << std :: endl;
-        write(replica_id1[i],set_response.c_str(),set_response.size());
-      }
+      response = perform_set(response, parser_list, all_cmd);
       //write(client_fd,set_response.c_str(),set_response.size());
       //std :: cout << "here ? " << std :: endl;
       // response += std::to_string(all_response.length());
@@ -197,20 +254,18 @@ bool queue = false ;
       }
     } else if (parser_list[0] == "GET") {
       //std :: cout << "??" << std :: endl;
-      mutex_guard.lock();
-      long current_time_in_ms = get_current_time_ms();
-
-      response = key_value_storage->get(parser_list[1], current_time_in_ms);
-     // std :: cout << "lol" << std :: endl;
-      //std :: cout << "response is " << response << std :: endl;
-      mutex_guard.unlock();
-
-      if (response == "") {
-        response = "$-1\r\n";
-      } else {
-        response =
-            "$" + std::to_string(response.size()) + "\r\n" + response + "\r\n";
-      }
+      if(queue == true){
+        response = "+QUEUED\r\n";
+        // std::vector<std::string> list_cmd ;
+        // list_cmd.push_back(parser_list[0]);
+        // list_cmd.push_back(parser_list[1]);
+        // list_cmd.push_back(parser_list[2]);
+        // list_cmd.push_back("999999999999999");
+        q_cmd.push(parser_list);
+       }
+       else {
+      response = perform_get(response, parser_list);
+       }
     } else if (parser_list[0] == "CONFIG") {
       if (parser_list[1] == "GET") {
        // std :: cout << replica_id[0] << std :: endl;
@@ -508,24 +563,13 @@ bool queue = false ;
     else if(parser_list[0] == "INCR"){
         if(queue == true){
           response = "+QUEUED\r\n";
+          //perform_incr(response, parser_list);
+          std :: cout << "or here ?" << std::endl;
+          q_cmd.push(parser_list);
         }
         else {
-        std::string key = parser_list[1];
-        std::string value = key_value_storage->get(key,0);
-        if(value == "") value = "0";
-        bool digit = true;
-        for(auto it : value){
-            if(it >= '0' && it <= '9') continue ;
-            else digit = false ;
-        }
-        if(digit == true){
-        int current_value = std::stoi(value) +1 ;
-        response = ":" + std::to_string(current_value)+"\r\n";
-        key_value_storage->set(key,std::to_string(current_value),get_current_time_ms()+9999999999);
-        }
-        else {
-           response = "-ERR value is not an integer or out of range\r\n";
-        }
+         response = perform_incr(response, parser_list);
+         // q_cmd.push(parser_list);
       }
     }
     else if(parser_list[0] == "MULTI"){
@@ -535,8 +579,81 @@ bool queue = false ;
     else if(parser_list[0] == "EXEC"){
       if(queue == true){
         if(!appear.count(parser_list[0])){
-          response = "*0\r\n";
-          appear[parser_list[0]] ++;
+          if(q_cmd.size() == 0) {response = "*0\r\n";appear[parser_list[0]] ++;}
+          else {
+            response = "";
+            std::vector<std::string > running ;
+            std::vector<std::string> com;
+            while(!q_cmd.empty()){
+              //std:: cout << "here" <<std::endl;
+              std::vector<std:: string> command = q_cmd.front();
+              //std:: cout << command.size() << std::endl;
+                std:: cout << command[0] << std::endl;
+
+                if(command[0] == "GET"){
+                  q_cmd.pop();
+                  std::string r1 = perform_get(response, command);
+                  int id = 0;
+                  while(id < r1.size() && r1[id] != '\n') id ++;
+                  com.push_back(command[0]);
+
+                  running.push_back(r1);
+                }
+                else if(command[0] == "SET"){
+                    q_cmd.pop();
+                    std::vector<std:: string> command1 = q_cmd.front();
+                    q_cmd.pop();
+                    //std:: cout << q_cmd.size() << std::endl;
+                    std::string r1  = perform_set(response, command, command1);
+                    r1 = r1.substr(0,r1.length()-2);
+                    r1 = r1.substr(1,r1.length()-1);
+                    running.push_back(r1);
+                    com.push_back(command[0]);
+                }
+                else {
+                  //std :: cout << "here" << std::endl;
+                  q_cmd.pop();
+                  std::string r1  = perform_incr(response, command);
+                  std::cout << q_cmd.size() << std::endl;
+                  r1 = r1.substr(0,r1.length()-2);
+                  //r1 = r1.substr(1,r1.length()-1);
+                  std::cout << r1 << std::endl;
+                  running.push_back(r1);
+                  com.push_back(command[0]);
+                }
+            }
+            //std:: cout << "lol" << std::endl;
+            response.clear();
+            response += "*";
+            response += std::to_string(running.size());
+            response += "\r\n";
+            //std :: cout << response << std::endl;
+            int cnt = 0;
+            for(auto it : running){
+
+              if(com[cnt] == "SET"){
+              response += "$";
+              response += std::to_string(it.size());
+              response += "\r\n";
+              response += it;
+              response += "\r\n";
+              }
+              else if(com[cnt] == "GET"){
+                response += it;
+              }
+              else {
+                response += it;
+                response += "\r\n";
+              }
+              cnt ++;
+              // reverse(it.begin(),it.end());
+              // it.pop_back();
+              // reverse(it.begin(),it.end());
+              // response += it;
+
+            }
+
+          }
         }
         else {
           response = "-ERR EXEC without MULTI\r\n";
@@ -544,6 +661,17 @@ bool queue = false ;
       }
       else {
         response =  "-ERR EXEC without MULTI\r\n";
+      }
+      queue = false;
+    }
+    else if(parser_list[0] == "DISCARD"){
+      if(q_cmd.size() > 0){
+        while(!q_cmd.empty()) q_cmd.pop();
+        response = "+OK\r\n";
+        queue = false;
+      }
+      else {
+        response = "-ERR DISCARD without MULTI\r\n";
       }
     }
     else {
