@@ -37,7 +37,6 @@ std::map<std::string,int> appear ;
 long prev_time = -1;
 
 
-std::queue<std::vector<std::string > > q_cmd ;
 extern int send_request1 (std:: string& port,std:: string&replica_no,struct sockaddr_in& server_addr , int server_fd, int argc, char**argv);
 std::mutex mutex_guard;
 bool inside = false;
@@ -172,6 +171,7 @@ std::string perform_incr(std:: string response , std::vector<std::string> parser
 
       //std :: cout << "mutex finished" << std :: endl;
       bool queue = false ;
+      std::queue<std::vector<std::string > > q_cmd ;
   long current_time = get_current_time_ms();
   std :: string master_id = "8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb";
   for (auto it : additional_pair) {
