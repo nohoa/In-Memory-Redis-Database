@@ -1,6 +1,7 @@
 #include "Map.h"
 #include "RDB Reader/RDBParser.hpp"
 #include "Redis.h"
+#include "Transaction/TransactionQuery.hpp"
 #include <arpa/inet.h>
 #include <chrono>
 #include <cstdint>
@@ -139,37 +140,10 @@ std::string perform_get(std::string response , std::vector<std::string> parser_l
     return response ;
 }
 
-std::string perform_incr(std:: string response , std::vector<std::string> parser_list){
-      //std:: cout << "perform INCR command in here" << std::endl;
-      std::string key = parser_list[1];
-        std::string value = key_value_storage->get(key,0);
-        if(value == "") value = "0";
-        bool digit = true;
-        for(auto it : value){
-            if(it >= '0' && it <= '9') continue ;
-            else digit = false ;
-        }
-        if(digit == true){
-        int current_value = std::stoi(value) +1 ;
-        response = ":" + std::to_string(current_value)+"\r\n";
-        mutex_guard.lock();
-        key_value_storage->set(key,std::to_string(current_value),get_current_time_ms()+9999999999);
-        mutex_guard.unlock();
-        }
-        
-        else {
-           response = "-ERR value is not an integer or out of range\r\n";
-        }
-        return response ;
-}
-
  int handle_connect(int client_fd, int argc, char **argv,
                     std::vector<std::vector<std::string> > additional_pair) {
-                     // std :: cout << "here" << std::endl;
-        //std :: cout << mutex_guard.try_lock() << std::endl;
-      //while(mutex_guard.try_lock() == false ) ;
 
-      //std :: cout << "mutex finished" << std :: endl;
+
       bool queue = false ;
       std::queue<std::vector<std::string > > q_cmd ;
   long current_time = get_current_time_ms();
@@ -197,9 +171,6 @@ std::string perform_incr(std:: string response , std::vector<std::string> parser
     char msg[1024] = {};
     int rc = recv(client_fd, &msg, sizeof(msg), 0);
 
-    //std::cout << rc << std:: endl;
-    //std :: cout << rc << std:: endl;
-    //std :: cout << std::endl;
 
     if (rc <= 0) {
       //std :: cout << "new cmd" << std :: endl;
@@ -224,6 +195,9 @@ std::string perform_incr(std:: string response , std::vector<std::string> parser
     std ::vector<std ::string> parser_list = parser->get_command(header);
 
     std :: vector<std::string > all_cmd  = parser->get_client_command(header);
+
+
+    std::unique_ptr<Transaction_Query> transactional{std::make_unique<Transaction_Query>()};
 
     std :: cout << std::endl;
 
@@ -359,10 +333,7 @@ std::string perform_incr(std:: string response , std::vector<std::string> parser
 
     }
     else if(parser_list[0] == "WAIT"){
-      //std :: cout << "wait ?" << std::endl;
 
-       //  To do : Wait with multiple commands 
-       //std::cout << inside << std::endl;
        if(inside == false){
             response = ":"+std::to_string(replica_id1.size()) + "\r\n";
        }
@@ -401,10 +372,10 @@ std::string perform_incr(std:: string response , std::vector<std::string> parser
             std ::string  pref_key = all_cmd[2].substr(0,all_cmd[2].size()-1);
             std::vector<std::string> keys = key_value_storage->get_all_seq();
             std::string max_key  = pref_key;
-            //std::cout << max_key <<std::endl;
+
             bool key_exist = false;
             for(auto it : keys){
-                //std:: cout << it << " ";
+
                 std::string curr_pref = it.substr(0,it.size()-1);
                 if(curr_pref.compare(pref_key) == 0){
                   key_exist = true;
@@ -441,10 +412,9 @@ std::string perform_incr(std:: string response , std::vector<std::string> parser
               response = "-ERR The ID specified in XADD is equal or smaller than the target stream top item\r\n";
           }
         }
-        //std :: cout << response << std::endl;
         mutex_guard.unlock();
         for(int i = 1 ;i < all_cmd.size() ;i += 2){
-          //std::cout << all_cmd[i] <<" " << all_cmd[i+1] <<std::endl;
+
           mutex_guard.lock();
           long curr_time = get_current_time_ms();
           key_value_storage->set(all_cmd[i],all_cmd[i+1],curr_time+999999999999);
@@ -491,7 +461,7 @@ std::string perform_incr(std:: string response , std::vector<std::string> parser
           }
           
         }
-        //std::cout << response << std::endl;
+
     }
     else if(parser_list[0] == "xread"){
       if(all_cmd[1] == "block"){
@@ -505,39 +475,12 @@ std::string perform_incr(std:: string response , std::vector<std::string> parser
           prev_time = get_current_time_ms()+std::stol(all_cmd[2]);
           std::this_thread::sleep_for(
             std::chrono::milliseconds(std::stol(all_cmd[2])));
-            //std::cout << response <<std::endl;
+          
         }
         else 
         {
           response = "$-1\r\n";
         }
-        // long time_now = get_current_time_ms();
-        // mutex_guard.lock();
-        //   if((prev_time == -1 )||(time_now <= prev_time) ){
-        //     prev_time = get_current_time_ms() +std::stol(all_cmd[2]);
-        //     //std::this_thread::sleep_for (std::chrono::milliseconds(std::stol(all_cmd[2])));
-        //     std :: string lower_bound = all_cmd[5];
-        //     std ::string upper_bound = "999-999";
-        //     std::vector<std::vector<std::string> > set_value = key_value_storage->get_range(lower_bound, upper_bound);
-    
-        //     response = "*" + std::to_string(set_value.size()) +"\r\n";
-        //     for(auto it : set_value){
-        //       response += ("*" + std::to_string(2) +"\r\n");
-        //       response += "$" + std::to_string(it[0].length()) +"\r\n" +it[0] +"\r\n";
-        //       response += ("*" + std::to_string(it.size()-1) +"\r\n");
-        //       for(int i = 1 ;i < it.size() ;i ++){
-        //         response += "$" + std::to_string(it[i].length()) +"\r\n" +it[i] +"\r\n";
-        //       }
-              
-        //     }
-        //   }
-        //   else {
-        //     //sleep(2);
-        //     std :: cout << "go here " << std::endl;
-        //     response = "$-1\r\n";
-        //   }
-        //   mutex_guard.unlock();
-
       }
       else {
       int len = (all_cmd.size() - 2) >> 1;
@@ -563,13 +506,11 @@ std::string perform_incr(std:: string response , std::vector<std::string> parser
     else if(parser_list[0] == "INCR"){
         if(queue == true){
           response = "+QUEUED\r\n";
-          //perform_incr(response, parser_list);
-          std :: cout << "or here ?" << std::endl;
+
           q_cmd.push(parser_list);
         }
         else {
-         response = perform_incr(response, parser_list);
-         // q_cmd.push(parser_list);
+         response = transactional->perform_incr(response, parser_list);
       }
     }
     else if(parser_list[0] == "MULTI"){
@@ -611,13 +552,10 @@ std::string perform_incr(std:: string response , std::vector<std::string> parser
                     com.push_back(command[0]);
                 }
                 else {
-                  //std :: cout << "here" << std::endl;
                   q_cmd.pop();
-                  std::string r1  = perform_incr(response, command);
-                  std::cout << q_cmd.size() << std::endl;
+                  std::string r1  = transactional->perform_incr(response, command);
                   r1 = r1.substr(0,r1.length()-2);
-                  //r1 = r1.substr(1,r1.length()-1);
-                  std::cout << r1 << std::endl;
+
                   running.push_back(r1);
                   com.push_back(command[0]);
                 }
@@ -708,8 +646,9 @@ std::string perform_incr(std:: string response , std::vector<std::string> parser
 }
 
 int main(int argc, char **argv) {
+  using  std::cout ;
   // Flush after every std::cout / std::cerr
-  std::cout << std::unitbuf;
+  cout << std::unitbuf;
   std::cerr << std::unitbuf;
 
   // for (int i = 0; i < argc; i++) {
@@ -765,7 +704,7 @@ int main(int argc, char **argv) {
     std :: string replica_no = argv[2];
 
     //std ::unique_ptr<Client_Request> client{std::make_unique<Client_Request>()};
-    std :: cout << "thread launched" << std::endl;
+    cout << "thread launched" << std::endl;
 
     std::thread th1(send_request1,std::ref(port),std::ref(replica_no),std::ref(server_addr), server_fd,argc,argv);
     th1.detach();
