@@ -88,57 +88,6 @@ std ::unique_ptr<In_Memory_Storage> key_value_storage{
 }
 
 
-std::string  perform_set(std::string response , std::vector<std::string> parser_list,std::vector<std::string> all_cmd){
-  mutex_guard.lock();
-     inside = true;
-      long current_time_in_ms = get_current_time_ms();
-
-      response = "+OK\r\n";
-      //std :: cout << parser_list[1] <<" " << parser_list[2] << std :: endl;
-      if (parser_list.size() > 3)
-        key_value_storage->set(parser_list[1], parser_list[2],
-                               current_time_in_ms + stoi(parser_list.back()));
-      else
-        key_value_storage->set(parser_list[1], parser_list[2],
-                               current_time_in_ms + 999999999999);
-        
-      //int status = send(client_fd, response.c_str(), response.length(), 0);
-      //response = "$";
-      mutex_guard.unlock();
-      std :: string set_response ="*" ;
-      set_response += std::to_string(all_cmd.size());
-      set_response += "\r\n";
-      for(auto it : all_cmd) {
-        set_response += "$";
-        set_response += std::to_string(it.size());
-        set_response += "\r\n";
-        set_response += it;
-        set_response += "\r\n";
-      }         
-      for(int i = 0 ;i < replica_id1.size() ;i ++){
-       // std :: cout << replica_id[i] << std :: endl;
-        write(replica_id1[i],set_response.c_str(),set_response.size());
-      }
-      return response;
-}
-
-std::string perform_get(std::string response , std::vector<std::string> parser_list){
-     std:: cout << "perform get" << std::endl;
-     //std :: cout << parser_list.size() << std::endl;
-     mutex_guard.lock();
-     long current_time_in_ms = get_current_time_ms();
-     response = key_value_storage->get(parser_list[1], current_time_in_ms);
-    // std :: cout << "lol" << std :: endl;
-     //std :: cout << "response is " << response << std :: endl;
-     mutex_guard.unlock();
-     if (response == "") {
-       response = "$-1\r\n";
-     } else {
-       response =
-           "$" + std::to_string(response.size()) + "\r\n" + response + "\r\n";
-     }
-    return response ;
-}
 
  int handle_connect(int client_fd, int argc, char **argv,
                     std::vector<std::vector<std::string> > additional_pair) {
@@ -218,7 +167,7 @@ std::string perform_get(std::string response , std::vector<std::string> parser_l
       q_cmd.push(all_cmd);
      }
      else {
-      response = perform_set(response, parser_list, all_cmd);
+      response = transactional->perform_set(response, parser_list, all_cmd);
       //write(client_fd,set_response.c_str(),set_response.size());
       //std :: cout << "here ? " << std :: endl;
       // response += std::to_string(all_response.length());
@@ -227,18 +176,12 @@ std::string perform_get(std::string response , std::vector<std::string> parser_l
       // response += "\r\n";
       }
     } else if (parser_list[0] == "GET") {
-      //std :: cout << "??" << std :: endl;
-      if(queue == true){
+      if(queue){
         response = "+QUEUED\r\n";
-        // std::vector<std::string> list_cmd ;
-        // list_cmd.push_back(parser_list[0]);
-        // list_cmd.push_back(parser_list[1]);
-        // list_cmd.push_back(parser_list[2]);
-        // list_cmd.push_back("999999999999999");
         q_cmd.push(parser_list);
        }
        else {
-      response = perform_get(response, parser_list);
+      response = transactional->perform_get(response, parser_list);
        }
     } else if (parser_list[0] == "CONFIG") {
       if (parser_list[1] == "GET") {
@@ -345,8 +288,6 @@ std::string perform_get(std::string response , std::vector<std::string> parser_l
        th2.detach();
        }
 
-     // send(client_fd, response.c_str(), response.length(), 0);
-      //response = "*3\r\n$8\r\nREPLCONF\r\n$3\r\nACK\r\n$1\r\n0\r\n.";
     }
     else if(parser_list[0] == "TYPE"){
       if(key_value_storage->exist(parser_list[1])) {
@@ -533,7 +474,7 @@ std::string perform_get(std::string response , std::vector<std::string> parser_l
 
                 if(command[0] == "GET"){
                   q_cmd.pop();
-                  std::string r1 = perform_get(response, command);
+                  std::string r1 = transactional->perform_get(response, command);
                   int id = 0;
                   while(id < r1.size() && r1[id] != '\n') id ++;
                   com.push_back(command[0]);
@@ -545,7 +486,7 @@ std::string perform_get(std::string response , std::vector<std::string> parser_l
                     std::vector<std:: string> command1 = q_cmd.front();
                     q_cmd.pop();
                     //std:: cout << q_cmd.size() << std::endl;
-                    std::string r1  = perform_set(response, command, command1);
+                    std::string r1  = transactional->perform_set(response, command, command1);
                     r1 = r1.substr(0,r1.length()-2);
                     r1 = r1.substr(1,r1.length()-1);
                     running.push_back(r1);
