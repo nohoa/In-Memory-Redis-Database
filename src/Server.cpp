@@ -43,14 +43,7 @@ std::mutex mutex_guard;
 bool inside = false;
 
 std::mutex mtx;
- std ::string to_lower(std ::string s) {
-  std ::string ans;
-  for (auto x : s) {
 
-    ans += (char)tolower(x);
-  }
-  return ans;
-}
 std ::unique_ptr<In_Memory_Storage> key_value_storage{
   std::make_unique<In_Memory_Storage>()};
 
@@ -303,7 +296,7 @@ std ::unique_ptr<In_Memory_Storage> key_value_storage{
       if(all_cmd.size()  >= 3 && all_cmd.size()%2 != 0) {
         response = "$" +std::to_string(parser_list[2].length())+"\r\n"+parser_list[2] +"\r\n";
         mutex_guard.lock();
-        //std :: cout << all_cmd[2] << std::endl;
+
         if(all_cmd[2] == "*"){
             std::string  curr_time = std::to_string(get_current_time_ms());
 
