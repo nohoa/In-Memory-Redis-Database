@@ -115,7 +115,6 @@ int send_request1(std::string &port, std::string &replica_no,
          int start_id = 0;
          while(start_id < sz && msg[start_id] != '*') start_id ++;
       for (int i = start_id; i < sz; i++) {
-        //std::cout << msg[i] ;
         if (msg[i] == '*' || msg[i] == '$')
           all += msg[i];
         else if (msg[i] >= 'A' && msg[i] <= 'Z')
@@ -125,7 +124,7 @@ int send_request1(std::string &port, std::string &replica_no,
         else if (msg[i] >= 'a' && msg[i] <= 'z')
           all += msg[i];
       }
-      //std :: cout << std::endl;
+
       int id = 0;
       while(id < all.size()){
           std::string key ;
@@ -140,7 +139,7 @@ int send_request1(std::string &port, std::string &replica_no,
              key += all[id];
              id ++;
           }
-          //id ++;
+
           id ++;
           id ++;
           while(id < all.size() && all[id] != '*') {
@@ -156,7 +155,7 @@ int send_request1(std::string &port, std::string &replica_no,
       }
     }
     close(backup_fd);
-    std :: cout << "finished" << std::endl;
+    std :: cout << "finished master replication " << std::endl;
   }
 
   return 0;

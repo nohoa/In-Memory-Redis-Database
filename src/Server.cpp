@@ -58,7 +58,7 @@ std ::unique_ptr<In_Memory_Storage> key_value_storage{
  int replica_count = 0 ;
 
  void send_ack(int client_fd, std::string count , std::string wait_time ){
-  //response = ":"+std::to_string(1) + "\r\n";
+  
   std::unique_lock<std::mutex> lock(wait_mutex);
   m_wait_count = std::stoi(count);
   std :: string ack = "*3\r\n$8\r\nREPLCONF\r\n$6\r\nGETACK\r\n$1\r\n*\r\n";
