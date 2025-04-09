@@ -9,7 +9,7 @@ extern std::mutex mutex_guard ;
 extern std ::unique_ptr<In_Memory_Storage> key_value_storage ;
 
 extern bool inside ;
-extern std::vector<int> replica_id1;
+extern std::vector<int> replica_id;
 
 
 extern long get_current_time_ms();
@@ -64,9 +64,9 @@ std::string Transaction_Query:: perform_set(std::string response , std::vector<s
           set_response += it;
           set_response += "\r\n";
         }         
-        for(int i = 0 ;i < replica_id1.size() ;i ++){
+        for(int i = 0 ;i < replica_id.size() ;i ++){
          // std :: cout << replica_id[i] << std :: endl;
-          write(replica_id1[i],set_response.c_str(),set_response.size());
+          write(replica_id[i],set_response.c_str(),set_response.size());
         }
         return response;
   }
