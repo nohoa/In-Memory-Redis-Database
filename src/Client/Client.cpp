@@ -116,7 +116,7 @@ int handle_slave_request(std::string &port, std::string &replica_no,
           send(backup_fd, ack.c_str(), ack.length(), 0);
         }
       }
-      std ::cout << sz << std::endl;
+
       int start_id = 0;
       while (start_id < sz && msg[start_id] != '*')
         start_id++;
@@ -160,7 +160,7 @@ int handle_slave_request(std::string &port, std::string &replica_no,
       }
     }
     close(backup_fd);
-    std ::cout << "finished master replication " << std::endl;
+    std ::cout << "Finish slave replication " << std::endl;
   }
 
   return 0;

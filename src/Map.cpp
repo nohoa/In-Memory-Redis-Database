@@ -49,7 +49,9 @@ void In_Memory_Storage::set_type(std::string key, std::string key_type) {
 
 std::string In_Memory_Storage::get_type(std::string key) { return type[key]; }
 
-void In_Memory_Storage ::set_seq(std::string seq_no) { sequence_no[seq_no]++; }
+void In_Memory_Storage ::set_seq(std::string seq_no) {
+     sequence_no[seq_no]++; 
+    }
 
 std::vector<std::string> In_Memory_Storage ::get_all_seq() {
   std::vector<std::string> all;
@@ -85,10 +87,10 @@ In_Memory_Storage ::get_range(std::string left, std::string right) {
   return v;
 }
 
-std::vector<std::vector<std::string>>
+std::vector<std::vector<std::string> >
 In_Memory_Storage ::get_range_match_key(std::string key, std::string left,
                                         std::string right) {
-  std::vector<std::vector<std::string>> v;
+  std::vector<std::vector<std::string> > v;
   for (auto it : stream) {
     std::string range_key = it.first.second;
     if (range_key.compare(left) >= 0 && right.compare(range_key) >= 0 &&

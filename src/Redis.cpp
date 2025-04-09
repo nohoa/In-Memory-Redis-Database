@@ -2,11 +2,11 @@
 
 std::vector<std::string> Redis ::get_command(std::string response) {
   std::vector<std::string> v;
-  // std :: cout << response << std :: endl;
+
   std::string running = "";
   int id = 0;
   while (id < response.size()) {
-    // std :: cout << response[id] << std :: endl;
+   
     if (response[id] == '\r' || response[id] == '\n') {
       if (running.size() > 0)
         v.push_back(running);
@@ -32,11 +32,11 @@ std::vector<std::string> Redis ::get_command(std::string response) {
 
 std::vector<std::string> Redis ::get_all_command(std ::string response) {
   std::vector<std::string> v;
-  // std :: cout << response << std :: endl;
+  
   std::string running = "";
   int id = 0;
   while (id < response.size()) {
-    // std :: cout << response[id] << std :: endl;
+   
     if (response[id] == '\r' || response[id] == '\n') {
       if (running.size() > 0)
         v.push_back(running);
@@ -56,11 +56,11 @@ std::vector<std::string> Redis ::get_all_command(std ::string response) {
 
 std::vector<std::string> Redis ::get_client_command(std::string response) {
         std::vector<std::string> v;
-        // std :: cout << response << std :: endl;
+        
         std::string running = "";
         int id = 0;
         while (id < response.size()) {
-          // std :: cout << response[id] << std :: endl;
+          
           if (response[id] == '\r' || response[id] == '\n') {
             if (running.size() > 0)
               v.push_back(running);
