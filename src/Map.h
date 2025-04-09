@@ -25,8 +25,6 @@ class In_Memory_Storage {
 
     virtual std::string get (std :: string key, long long current_time) ;
 
-    virtual void clean (long long current_time );
-
     virtual bool exist(std::string key);
 
     virtual bool exist_type(std::string key);
