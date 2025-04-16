@@ -30,37 +30,34 @@ extern std::condition_variable wait_cond;
 extern int m_wait_count ;
 extern std ::vector<int> replica_id;
 extern std::mutex wait_mutex;
-
-std::map<std::string, int> appear;
-long prev_time = -1;
-
+extern long get_current_time_ms() ;
+extern void send_ack(int client_fd, std::string count, std::string wait_time) ;
 extern int handle_slave_request(std::string &port, std::string &replica_no,
-                                struct sockaddr_in &server_addr, int server_fd,
-                                int argc, char **argv);
+  struct sockaddr_in &server_addr, int server_fd,
+  int argc, char **argv);
+
+
 std::mutex mutex_guard;
-bool inside = false;
-
 std::mutex mtx;
-
+int replica_count = 0;
+long prev_time = -1;
+bool inside = false;
+std::map<std::string, int> appear;
 std ::unique_ptr<In_Memory_Storage> key_value_storage{
     std::make_unique<In_Memory_Storage>()};
 
-extern long get_current_time_ms() ;
-int replica_count = 0;
-
-extern void send_ack(int client_fd, std::string count, std::string wait_time) ;
 
 int handle_master_connect(
     int client_fd, int argc, char **argv,
-    std::vector<std::vector<std::string>> additional_pair) {
-
-  bool does_queue_exist = false;
-
-  std::queue<std::vector<std::string>> q_cmd;
+    std::vector<std::vector<std::string> > additional_pair) {
+  
   long current_time = get_current_time_ms();
-  std ::string master_id = "8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb";
   int sz = 0;
+  std ::string master_id = "8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb";
+  bool does_queue_exist = false;
+  std::queue<std::vector<std::string> > q_cmd;
 
+  // Add additional pair if that present in command request. 
   for (auto it : additional_pair) {
     if (it[2] == "-1") {
       key_value_storage->set(it[0], it[1], current_time + 999999999999);
@@ -545,9 +542,8 @@ int handle_master_connect(
 }
 
 int main(int argc, char **argv) {
-  using std::cout;
   // Flush after every std::cout / std::cerr
-  cout << std::unitbuf;
+  std::cout << std::unitbuf;
   std::cerr << std::unitbuf;
 
   std::vector<std::string> argument;
@@ -598,7 +594,7 @@ int main(int argc, char **argv) {
     std::string port = argv[4];
     std ::string replica_no = argv[2];
 
-    cout << "Creating replication on port 6380 " << std::endl;
+    std::cout << "Creating replication on port 6380 " << std::endl;
 
     std::thread th1(handle_slave_request, std::ref(port), std::ref(replica_no),
                     std::ref(server_addr), server_fd, argc, argv);
@@ -629,8 +625,9 @@ int main(int argc, char **argv) {
 
   std ::string bin_key;
   std ::string bin_value;
-  std::vector<std::vector<std::string>> v;
+  std::vector<std::vector<std::string> > v;
 
+  // The case where command contains key-value storage
   if (argc >= 5) {
     std::string endpoint = "";
     endpoint += argv[2];
