@@ -1,6 +1,6 @@
 # Overview
 
-A Concurrent In-memory Redis Application that supports transactions, replication, and  concurrent client connections : https://app.codecrafters.io/courses/redis/overview
+A Concurrent In-memory Redis Application that supports Database key-value storage, transactions, replication, and  concurrent client connections: https://app.codecrafters.io/courses/redis/overview
 
 # Local testing :
 
