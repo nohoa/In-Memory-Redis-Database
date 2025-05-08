@@ -30,3 +30,36 @@ After calling to ./server, we can start sending commands to Redis in-memory DB s
   ✅ Store RDB Config file 
   
   ✅ SET/GET Command with expiry
+
+## Streaming
+
+  ✅ TYPE the command for checking the key-value storage type
+  
+  ✅ XADD command for creating streams of storage with a partially and fully automated ID generator
+  
+  ✅ XRANGE for range streaming query for timestamp
+  
+  ✅ Support blocking the data streaming 
+
+## Transactions 
+
+  ✅  INCR command to modify the key-value pair
+  
+  ✅  MULT command for supporting multiple concurrent transactions 
+  
+  ✅  EXEC command for execution of queued transactions
+
+## Replication
+
+ ✅ Slave replication will be on port 6380
+ 
+ ✅ Info command for checking the information for the slave replication
+ 
+ ✅ Send persistent ping communication
+ 
+ ✅ ACK and WAIT commands for communications betweenthe  main thread and replication
+
+## Concurrent user connection 
+
+ ✅ Support multiple people execute redis CLI command at once.
+ 
