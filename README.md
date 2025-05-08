@@ -4,7 +4,7 @@ A Concurrent In-memory Redis Application that supports Database key-value storag
 
 # Local testing :
 
-  * Running cmake for local testing : 
+  * Running CMake for local testing : 
 
 ```
 mkdir build
@@ -19,13 +19,15 @@ make
 
 ```
 
-After calling to ./server, we can start sending commands to Redis in-memory DB server, note that the format for this Redis implementation is [RESP Bulk Format](https://redis.io/docs/latest/develop/reference/protocol-spec/)
+Refer to [List of testing stage](https://app.codecrafters.io/courses/redis/introduction) for detail testings of each functionality of Redis in-memory database.
+
+After calling ./server, we can start sending commands to the Redis in-memory DB server. Note that the format for this Redis implementation is [RESP Bulk Format](https://redis.io/docs/latest/develop/reference/protocol-spec/)
 
 
 
 # Supporting commands and features of In-memory Redis Database :
 
-## Basic RDB Persistant for Database Storage
+## Basic RDB Persistent for Database Storage
 
   ✅ Store RDB Config file 
   
@@ -57,9 +59,10 @@ After calling to ./server, we can start sending commands to Redis in-memory DB s
  
  ✅ Send persistent ping communication
  
- ✅ ACK and WAIT commands for communications betweenthe  main thread and replication
+ ✅ ACK and WAIT commands for communications between the  main thread and replication
 
 ## Concurrent user connection 
 
- ✅ Support multiple people execute redis CLI command at once.
+ ✅ Support multiple clients executing the Redis CLI command at once.
+
  
